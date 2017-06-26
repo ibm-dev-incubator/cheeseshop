@@ -14,8 +14,13 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-@aiohttp_jinja2.template('upload.html')
-async def handle_upload(request):
+@aiohttp_jinja2.template('get_upload.html')
+async def handle_get_upload(request):
+    return {}
+
+
+@aiohttp_jinja2.template('post_upload.html')
+async def handle_post_upload(request):
     return {}
 
 
@@ -23,11 +28,12 @@ def main():
     args = parse_args(sys.argv[1:])
 
     app = web.Application()
-    app.router.add_get('/upload', handle_upload)
+    app.router.add_get('/upload', handle_get_upload)
+    app.router.add_post('/upload', handle_post_upload)
 
     aiohttp_jinja2.setup(
         app,
         loader=jinja2.PackageLoader('cheeseshop', 'templates')
     )
 
-    web.run_app(app, host='::', port=args.port)
+    web.run_app(app, host=args.host, port=args.port)
