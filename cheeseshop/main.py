@@ -2,6 +2,8 @@ import argparse
 import sys
 
 from aiohttp import web
+import aiohttp_jinja2
+import jinja2
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='cheeseshop webapp.')
@@ -12,17 +14,20 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-async def handle(request):
-    name = request.match_info.get('name', "Anonymous")
-    text = "Hello, " + name
-    return web.Response(text=text)
+@aiohttp_jinja2.template('upload.html')
+async def handle_upload(request):
+    return {}
 
 
 def main():
     args = parse_args(sys.argv[1:])
 
     app = web.Application()
-    app.router.add_get('/', handle)
-    app.router.add_get('/{name}', handle)
+    app.router.add_get('/upload', handle_upload)
+
+    aiohttp_jinja2.setup(
+        app,
+        loader=jinja2.PackageLoader('cheeseshop', 'templates')
+    )
 
     web.run_app(app, host='::', port=args.port)
