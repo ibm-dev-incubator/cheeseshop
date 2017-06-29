@@ -3,6 +3,10 @@ cheeseshop
 ==========
 
 
+architecture
+------------
+
+![architecture](CheeseShop.png)
 
 
 workers
