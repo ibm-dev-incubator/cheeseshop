@@ -1,0 +1,10 @@
+
+host: 0.0.0.0
+port: 8080
+swift:
+  auth_url: "https://mykeystone"
+  project_id: "dd415aad6718969c035781106fe8cb45b82"
+  region: "RegionOne"
+  user_id: "94ed55eb98d4033bafa16345e0ddaa3056"
+  password: ""
+
