@@ -2,6 +2,33 @@
 cheeseshop
 ==========
 
+Getting Started
+---------------
+
+
+Install cheeseshop via pip
+
+.. code:: shell
+
+     git clone https;//github.com/ibm-dev-incubator/cheeseshop
+     cd cheeseshop
+     pip install .
+
+
+Create and edit config file
+
+.. code:: shell
+
+    cp example_config.yaml config.yaml
+    vim config.yaml
+
+
+Start the service
+
+.. code:: shell
+
+    cheeseshop-webapp config.yaml
+
 
 architecture
 ------------
