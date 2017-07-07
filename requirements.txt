@@ -2,4 +2,6 @@ aiohttp
 aiohttp_jinja2
 cchardet
 pyyaml
+aiopg
+sqlalchemy
 -e git+https://github.com/ggtracker/sc2reader.git@upstream#egg=sc2reader
