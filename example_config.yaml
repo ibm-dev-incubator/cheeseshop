@@ -8,3 +8,5 @@ swift:
   user_id: "94ed55eb98d4033bafa16345e0ddaa3056"
   password: ""
 
+db_connect: "dbname=get_hype user=myname password=password host=mypostgresserver.example.com port=4848 ..."
+db_uri: "postgres://myname:password@mypostgresserver.example.com:4848/get_hype"
