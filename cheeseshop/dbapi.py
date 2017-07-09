@@ -13,3 +13,6 @@ replays = sa.Table('replays', metadata,
                    sa.Column('filename', sa.tString()),
                    )
 
+
+async def create_schema(conn):
+    pass

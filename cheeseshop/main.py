@@ -12,7 +12,6 @@ from cheeseshop import swift
 from cheeseshop import dbapi
 
 
-
 def parse_args(args):
     parser = argparse.ArgumentParser(description='cheeseshop webapp.')
     parser.add_argument('config_file', type=str,
@@ -21,8 +20,15 @@ def parse_args(args):
 
 
 class Handler(object):
-    def __init__(self, config):
+    def __init__(self, config, engine):
         self.config = config
+        self.engine = engine
+
+    def add_routes(self, router):
+        router.add_get('/upload', handler.handle_get_upload)
+        router.add_post('/upload', handler.handle_post_upload)
+        router.add_get('/list_replays', handler.handle_list_replays)
+        router.add_get('/test-get-token', handler.handle_test_get_token)
 
     @aiohttp_jinja2.template('get_upload.html')
     async def handle_get_upload(self, request):
@@ -68,16 +74,14 @@ def main():
     args = parse_args(sys.argv[1:])
 
     config = cs_config.Config.from_yaml_file(args.config_file)
-    handler = Handler(config)
-    dsn = config.db_connect
+
+    loop = asyncio.get_event_loop()
+    engine = loop.run_until_complete(db.create_engine(config.sql))
+
+    handler = Handler(config, engine)
 
     app = web.Application()
-    loop = asyncio.get_event_loop()
-    app['engine'] = loop.run_until_complete(create_engine(dsn, loop=loop))
-    app.router.add_get('/upload', handler.handle_get_upload)
-    app.router.add_post('/upload', handler.handle_post_upload)
-    app.router.add_get('/list_replays', handler.handle_list_replays)
-    app.router.add_get('/test-get-token', handler.handle_test_get_token)
+    handler.add_routes(app.router)
 
     aiohttp_jinja2.setup(
         app,

@@ -9,17 +9,30 @@ class SwiftConfig(object):
         self.region = region
 
 
+class SqlConfig(object):
+    def __init__(self, user, database, host, port, password,
+                 minsize=1, maxsize=10):
+        self.user = user
+        self.database = database
+        self.host = host
+        self.port = port
+        self.password = password
+        self.maxsize = maxsize
+        self.minsize = minsize
+
+
 class Config(object):
     @staticmethod
     def from_yaml_file(path):
         with open(path, 'r') as fh:
             raw_config = yaml.load(fh)
         swift_config = SwiftConfig(**raw_config['swift'])
-        return Config(raw_config['host'], raw_config['port'], swift_config, raw_config['db_connect'], raw_config['db_uri'])
+        sql_config = SqlConfig(**raw_config['sql'])
+        return Config(raw_config['host'], raw_config['port'], swift_config,
+                      sql_config)
 
-    def __init__(self, host, port, swift, db_connect, db_uri):
+    def __init__(self, host, port, swift, sql):
         self.host = host
         self.port = int(port)
         self.swift = swift
-        self.db_connect= db_connect
-        self.db_uri= db_uri
+        self.sql = sql
