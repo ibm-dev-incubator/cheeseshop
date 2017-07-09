@@ -26,13 +26,4 @@ class TestWithAsyncFixtures:
 
 
 class AsyncFixture(fixtures.Fixture):
-    async def setUp(self):
-        super(AsyncFixture, self).setUp()
-        await self._setUp()
-
-    async def _setUp(self):
         pass
-
-    async def cleanUp(self):
-        super(AsyncFixture, self).cleanUp()
-        # TODO(greghaynes): Add call async cleanups

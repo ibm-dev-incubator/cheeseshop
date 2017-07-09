@@ -1,22 +1,7 @@
 import copy
 
-from cheeseshop import db
+from cheeseshop import db, dbapi
 from cheeseshop.tests import asyncfixtures, base
-
-
-class SqlTestFixture(asyncfixtures.AsyncFixture):
-    def __init__(self, pool, db_name):
-        self.pool = pool
-        self.db_name = db_name
-
-    async def _setUp(self):
-        async with self.pool.acquire() as conn:
-            await conn.execute('CREATE DATABASE "%s"' % self.db_name)
-
-    async def cleanUp(self):
-        super(SqlTestFixture, self).cleanUp()
-        async with self.pool.acquire() as conn:
-            await conn.execute('DROP DATABASE "%s"' % self.db_name)
 
 
 class FunctionalTestCase(base.TestCase):
@@ -25,8 +10,20 @@ class FunctionalTestCase(base.TestCase):
         # We need to use db 'postgres' while creating our test db
         db_create_config = copy.deepcopy(self.config)
         db_create_config.sql.database = 'postgres'
-        pool = await db.create_pool(db_create_config.sql)
-        await self.useAsyncFixture(SqlTestFixture(pool,
-                                                  self.config.sql.database))
+        self._create_pool = await db.create_pool(db_create_config.sql)
+        async with self._create_pool.acquire() as conn:
+            await conn.execute('CREATE DATABASE "%s"'
+                               % self.config.sql.database)
 
-        self.pool = await db.create_pool(self.config)
+        self.pool = await db.create_pool(self.config.sql)
+
+        self.addCleanup(self._cleanup)
+
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await dbapi.create_schema(conn)
+
+    async def _cleanup(self):
+        await self.pool.close()
+        async with self._create_pool.acquire() as conn:
+            await conn.execute('DROP DATABASE "%s"' % self.config.sql.database)

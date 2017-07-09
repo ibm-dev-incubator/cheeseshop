@@ -1,5 +1,6 @@
 import yaml
 
+
 class SwiftConfig(object):
     def __init__(self, auth_url, project_id, user_id, password, region):
         self.auth_url = auth_url

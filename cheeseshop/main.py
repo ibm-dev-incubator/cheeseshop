@@ -19,16 +19,28 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-class Handler(object):
-    def __init__(self, config, engine):
+class App(object):
+    def __init__(self, config, sql_pool):
         self.config = config
-        self.engine = engine
+        self.sql_pool = sql_pool
 
     def add_routes(self, router):
         router.add_get('/upload', handler.handle_get_upload)
         router.add_post('/upload', handler.handle_post_upload)
         router.add_get('/list_replays', handler.handle_list_replays)
         router.add_get('/test-get-token', handler.handle_test_get_token)
+
+    def run(self):
+        web_app = web.Application()
+        self.add_routes(web_app.router)
+
+        aiohttp_jinja2.setup(
+            web_app,
+            loader=jinja2.PackageLoader('cheeseshop', 'templates')
+        )
+
+        web.run_app(web_app, host=config.host, port=config.port)
+
 
     @aiohttp_jinja2.template('get_upload.html')
     async def handle_get_upload(self, request):
@@ -76,16 +88,6 @@ def main():
     config = cs_config.Config.from_yaml_file(args.config_file)
 
     loop = asyncio.get_event_loop()
-    engine = loop.run_until_complete(db.create_engine(config.sql))
-
-    handler = Handler(config, engine)
-
-    app = web.Application()
-    handler.add_routes(app.router)
-
-    aiohttp_jinja2.setup(
-        app,
-        loader=jinja2.PackageLoader('cheeseshop', 'templates')
-    )
-
-    web.run_app(app, host=config.host, port=config.port)
+    pool = loop.run_until_complete(db.create_pool(config.sql))
+    app = App(config, pool)
+    app.run()
