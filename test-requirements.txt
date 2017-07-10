@@ -1,2 +1,3 @@
 asynctest
+fixtures
 flake8
