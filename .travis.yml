@@ -3,6 +3,20 @@ language: python
 python:
   - "3.5"
   - "3.6"
+services:
+  - postgresql
+
+notifications:
+  email: false
+
+before_install:
+  - psql -c 'create user cheeseshop;' -U postgres
+  - psql -c 'ALTER USER cheeseshop CREATEDB;' -U postgres
+
 install:
   - pip install -U tox setuptools pbr
+  - pip install -r requirements.txt
+  - pip install -r test-requirements.txt
+  - pip install .
+
 script: tox -e $(echo py$TRAVIS_PYTHON_VERSION | tr -d .)
