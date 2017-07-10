@@ -3,7 +3,6 @@ import asyncio
 import sys
 
 from aiohttp import web
-from aiopg.sa import create_engine
 import aiohttp_jinja2
 import jinja2
 
@@ -25,10 +24,10 @@ class App(object):
         self.sql_pool = sql_pool
 
     def add_routes(self, router):
-        router.add_get('/upload', handler.handle_get_upload)
-        router.add_post('/upload', handler.handle_post_upload)
-        router.add_get('/list_replays', handler.handle_list_replays)
-        router.add_get('/test-get-token', handler.handle_test_get_token)
+        router.add_get('/upload', self.handle_get_upload)
+        router.add_post('/upload', self.handle_post_upload)
+        router.add_get('/list_replays', self.handle_list_replays)
+        router.add_get('/test-get-token', self.handle_test_get_token)
 
     def run(self):
         web_app = web.Application()
