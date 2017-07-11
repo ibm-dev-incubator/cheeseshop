@@ -13,7 +13,14 @@ async def create_pool(config):
     )
 
 
-def transaction_wrap(f):
+def with_connection(f):
+    async def new_f(self, request):
+        async with self.sql_pool.acquire() as conn:
+            return await f(self, conn, request)
+    return new_f
+
+
+def with_transaction(f):
     async def new_f(self, request):
         async with self.sql_pool.acquire() as conn:
             async with conn.transaction():
