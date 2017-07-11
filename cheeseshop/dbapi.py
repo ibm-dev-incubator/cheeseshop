@@ -1,3 +1,5 @@
+from enum import Enum
+
 import asyncpg
 
 
@@ -31,19 +33,42 @@ class Game(object):
                               record['description']))
         return games
 
+    @staticmethod
+    async def get_by_name(conn, name):
+        row = await conn.fetchrow('''
+            SELECT * FROM games
+            WHERE name = $1
+        ''', name)
+        return Game(row['id'], row['name'], row['description'])
+
     def __init__(self, id_, name, description):
         self.id = id_
         self.name = name
         self.description = description
 
 
+class ReplayUploadState(Enum):
+    ERROR = 'error'
+    UPLOADING_TO_SWIFT = 'uploading_to_swift'
+    COMPLETE = 'complete'
+
+
 class Replay(object):
     @staticmethod
     async def create_schema(conn):
         await conn.execute('''
+            CREATE TYPE replay_upload_state AS ENUM (
+                'error',
+                'uploading_to_swift',
+                'complete'
+            )
+        ''')
+        await conn.execute('''
             CREATE TABLE replays(
                 id serial PRIMARY KEY,
+                uuid text UNIQUE NOT NULL,
                 game_id integer REFERENCES games (id),
+                upload_state replay_upload_state,
                 sha1sum text UNIQUE
             )
         ''')
@@ -52,28 +77,43 @@ class Replay(object):
         ''')
 
     @staticmethod
-    async def create(conn, game_id, sha1sum):
+    async def create(conn, uuid, game_id, upload_state, sha1sum):
         row = await conn.fetchrow('''
-            INSERT INTO replays(game_id, sha1sum)
-            VALUES($1, $2)
+            INSERT INTO replays(uuid, game_id, upload_state, sha1sum)
+            VALUES($1, $2, $3, $4)
             RETURNING id
-        ''', game_id, sha1sum)
-        return Replay(row['id'], game_id, sha1sum)
+        ''', uuid, game_id, upload_state.value, sha1sum)
+        return Replay(row['id'], uuid, game_id, upload_state, sha1sum)
+
+    @staticmethod
+    async def get_by_uuid(conn, uuid):
+        row = await conn.fetchrow('''
+            SELECT * FROM replays WHERE uuid = $1
+        ''', uuid)
+        return Replay.from_db_row(row)
 
     @staticmethod
     async def get_by_sha1sum(conn, sha1sum):
         row = await conn.fetchrow('''
             SELECT * FROM replays WHERE sha1sum = $1
         ''', sha1sum)
-        return Replay(row['id'], row['game_id'], row['sha1sum'])
+        return Replay.from_db_row(row)
 
-    def __init__(self, id_, game_id, sha1sum):
+    @staticmethod
+    def from_db_row(row):
+        return Replay(row['id'], row['uuid'], row['game_id'],
+                      ReplayUploadState(row['upload_state']), row['sha1sum'])
+
+
+    def __init__(self, id_, uuid, game_id, upload_state, sha1sum):
         self.id = id_
+        self.uuid = uuid
         self.game_id = game_id
+        self.upload_state = upload_state
         self.sha1sum = sha1sum
 
     def __eq__(self, other):
-        return self.id == other.id
+        return self.uuid == other.uuid
 
 
 async def create_schema(conn):

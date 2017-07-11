@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import sys
+import uuid
 
 from aiohttp import web
 import aiohttp_jinja2
@@ -50,16 +51,22 @@ class App(object):
         }
 
     @aiohttp_jinja2.template('post_upload.html')
-    async def handle_post_upload(self, request):
-        engine = request.app['engine']
-        replay = {
-                "sha1sum": "1c67012fee309bd3d2d68e3d0413c11834133c08",
-                "filename": "Hype Replay Neeb vs Byun.SC2Replay"
-                }
-        async with engine.acquire() as conn:
-            await conn.execute(dbapi.replays.insert().values(replay))
-
-        return {}
+    @db.transaction_wrap
+    async def handle_post_upload(self, conn, request):
+        req_data = await request.post()
+        game = await dbapi.Game.get_by_name(conn, req_data['game'])
+        replay_uuid = str(uuid.uuid4())
+        replay = await dbapi.Replay.create(
+            conn,
+            replay_uuid,
+            game.id,
+            dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
+            None
+        )
+        return {
+            'game': game,
+            'replay': replay
+        }
 
     async def handle_list_replays(self, request):
         engine = request.app['engine']

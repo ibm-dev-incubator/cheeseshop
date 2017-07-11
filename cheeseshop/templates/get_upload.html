@@ -1,18 +1,15 @@
-<html>
-    <head>
-        <title>Cheese Shop :: Upload</title>
-    </head>
-    <body>
-        <h2>Upload a replay</h2>
-        <form>
-            Game:
-            <select name="game">
+{% extends "base.html" %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+    <h2>Upload a replay</h2>
+    <form>
+        Game:
+        <select name="game">
 {% for game in games %}
-                <option value="{{ game.name }}">{{ game.description }}</option>
+            <option value="{{ game.name }}">{{ game.description }}</option>
 {% endfor %}
-            </select>
-            Replay file: <input type="file" name="replay_file" /><br />
-            <input type="submit" value="Upload" />
-        </form>
-    </body>
-</html>
+        </select>
+        Replay file: <input type="file" name="replay_file" /><br />
+        <input type="submit" value="Upload" />
+    </form>
+{% endblock %}
