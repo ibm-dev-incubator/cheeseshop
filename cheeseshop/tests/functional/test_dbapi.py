@@ -24,8 +24,12 @@ class TestDbApi(base.FunctionalTestCase):
         async with self.pool.acquire() as conn:
             my_game = await dbapi.Game.create(conn, 'test_game',
                                               'a test game')
-            my_replay = await dbapi.Replay.create(conn, 'uuid-1234',
-                                                  my_game.id, '1234')
+            my_replay = await dbapi.Replay.create(
+                conn,
+                'uuid-1234',
+                my_game.id,
+                dbapi.ReplayUploadState.COMPLETE,
+                '1234')
 
             replay = await dbapi.Replay.get_by_uuid(conn, 'uuid-1234')
             self.assertEqual(replay, my_replay)

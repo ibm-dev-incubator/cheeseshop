@@ -56,7 +56,13 @@ class App(object):
         req_data = await request.post()
         game = await dbapi.Game.get_by_name(conn, req_data['game'])
         replay_uuid = str(uuid.uuid4())
-        replay = await dbapi.Replay.create(conn, replay_uuid, game.id, None)
+        replay = await dbapi.Replay.create(
+            conn,
+            replay_uuid,
+            game.id,
+            dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
+            None
+        )
         return {
             'game': game,
             'replay': replay
