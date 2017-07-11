@@ -31,6 +31,14 @@ class Game(object):
                               record['description']))
         return games
 
+    @staticmethod
+    async def get_by_name(conn, name):
+        row = await conn.fetchrow('''
+            SELECT * FROM games
+            WHERE name = $1
+        ''', name)
+        return Game(row['id'], row['name'], row['description'])
+
     def __init__(self, id_, name, description):
         self.id = id_
         self.name = name
@@ -43,6 +51,7 @@ class Replay(object):
         await conn.execute('''
             CREATE TABLE replays(
                 id serial PRIMARY KEY,
+                uuid text UNIQUE NOT NULL,
                 game_id integer REFERENCES games (id),
                 sha1sum text UNIQUE
             )
@@ -52,28 +61,36 @@ class Replay(object):
         ''')
 
     @staticmethod
-    async def create(conn, game_id, sha1sum):
+    async def create(conn, uuid, game_id, sha1sum):
         row = await conn.fetchrow('''
-            INSERT INTO replays(game_id, sha1sum)
-            VALUES($1, $2)
+            INSERT INTO replays(uuid, game_id, sha1sum)
+            VALUES($1, $2, $3)
             RETURNING id
-        ''', game_id, sha1sum)
-        return Replay(row['id'], game_id, sha1sum)
+        ''', uuid, game_id, sha1sum)
+        return Replay(row['id'], uuid, game_id, sha1sum)
+
+    @staticmethod
+    async def get_by_uuid(conn, uuid):
+        row = await conn.fetchrow('''
+            SELECT * FROM replays WHERE uuid = $1
+        ''', uuid)
+        return Replay(row['id'], row['uuid'], row['game_id'], row['sha1sum'])
 
     @staticmethod
     async def get_by_sha1sum(conn, sha1sum):
         row = await conn.fetchrow('''
             SELECT * FROM replays WHERE sha1sum = $1
         ''', sha1sum)
-        return Replay(row['id'], row['game_id'], row['sha1sum'])
+        return Replay(row['id'], row['uuid'], row['game_id'], row['sha1sum'])
 
-    def __init__(self, id_, game_id, sha1sum):
+    def __init__(self, id_, uuid, game_id, sha1sum):
         self.id = id_
+        self.uuid = uuid
         self.game_id = game_id
         self.sha1sum = sha1sum
 
     def __eq__(self, other):
-        return self.id == other.id
+        return self.uuid == other.uuid
 
 
 async def create_schema(conn):
