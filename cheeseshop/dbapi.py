@@ -115,6 +115,12 @@ class Replay(object):
     def __eq__(self, other):
         return self.uuid == other.uuid
 
+    async def set_upload_state(self, conn, upload_state):
+        await conn.execute('''
+            UPDATE replays SET upload_state = $1
+            WHERE id = $2
+        ''', upload_state.value, self.id)
+
 
 async def create_schema(conn):
     await Game.create_schema(conn)
