@@ -8,6 +8,7 @@ import jinja2
 
 from cheeseshop import config as cs_config
 from cheeseshop import swift
+from cheeseshop import db
 from cheeseshop import dbapi
 
 
@@ -40,11 +41,13 @@ class App(object):
 
         web.run_app(web_app, host=config.host, port=config.port)
 
-
     @aiohttp_jinja2.template('get_upload.html')
-    async def handle_get_upload(self, request):
-        return {}
-
+    @db.transaction_wrap
+    async def handle_get_upload(self, conn, request):
+        games = await dbapi.Game.get_all(conn)
+        return {
+            'games': games
+        }
 
     @aiohttp_jinja2.template('post_upload.html')
     async def handle_post_upload(self, request):
@@ -58,7 +61,6 @@ class App(object):
 
         return {}
 
-
     async def handle_list_replays(self, request):
         engine = request.app['engine']
         body = '<html><body>'
@@ -67,7 +69,6 @@ class App(object):
                 body += '<p>{}: {}</p>\n'.format(row.sha1sum, row.filename)
             body += "</body></html>"
         return web.Response(body=body)
-
 
     async def handle_test_get_token(self, request):
         swift_config = self.config.swift

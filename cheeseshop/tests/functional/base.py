@@ -47,6 +47,7 @@ class FunctionalTestCase(base.TestCase):
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await dbapi.create_schema(conn)
+                await dbapi.create_initial_records(conn)
 
     async def _cleanup_db(self):
         await self.pool.close()
