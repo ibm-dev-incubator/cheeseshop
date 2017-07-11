@@ -8,9 +8,10 @@ import aiohttp_jinja2
 import jinja2
 
 from cheeseshop import config as cs_config
-from cheeseshop import swift
 from cheeseshop import db
 from cheeseshop import dbapi
+from cheeseshop import objectstoreapi
+from cheeseshop import swift
 
 
 def parse_args(args):
@@ -29,7 +30,6 @@ class App(object):
         router.add_get('/upload', self.handle_get_upload)
         router.add_post('/upload', self.handle_post_upload)
         router.add_get('/list_replays', self.handle_list_replays)
-        router.add_get('/test-get-token', self.handle_test_get_token)
 
     def run(self):
         web_app = web.Application()
@@ -43,7 +43,7 @@ class App(object):
         web.run_app(web_app, host=config.host, port=config.port)
 
     @aiohttp_jinja2.template('get_upload.html')
-    @db.transaction_wrap
+    @db.with_transaction
     async def handle_get_upload(self, conn, request):
         games = await dbapi.Game.get_all(conn)
         return {
@@ -51,18 +51,26 @@ class App(object):
         }
 
     @aiohttp_jinja2.template('post_upload.html')
-    @db.transaction_wrap
-    async def handle_post_upload(self, conn, request):
+    async def handle_post_upload(self, request):
         req_data = await request.post()
-        game = await dbapi.Game.get_by_name(conn, req_data['game'])
-        replay_uuid = str(uuid.uuid4())
-        replay = await dbapi.Replay.create(
-            conn,
-            replay_uuid,
-            game.id,
-            dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
-            None
-        )
+        replay = None
+        async with self.sql_pool.acquire() as conn:
+            async with conn.transaction():
+                game = await dbapi.Game.get_by_name(conn, req_data['game'])
+                replay_uuid = str(uuid.uuid4())
+                replay = await dbapi.Replay.create(
+                    conn,
+                    replay_uuid,
+                    game.id,
+                    dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
+                    None
+                )
+        # Swift uploads can take a while so release our db connection
+        swift_data = objectstoreapi.ReplayData(replay.uuid)
+        async with self._keystone_session() as keystone_session:
+            async with self._swift_client() as swift_client:
+                swift_data.write(swift_client,
+                                 req_data['replay_file'].file.read())
         return {
             'game': game,
             'replay': replay
@@ -77,16 +85,18 @@ class App(object):
             body += "</body></html>"
         return web.Response(body=body)
 
-    async def handle_test_get_token(self, request):
+    def _keystone_session(self):
         swift_config = self.config.swift
-        async with swift.KeystoneSession(swift_config.auth_url,
-                                         swift_config.project_id,
-                                         swift_config.user_id,
-                                         swift_config.password) as k_s:
-            async with swift.SwiftClient(k_s, swift_config.region) as s_c:
-                await s_c.create_object('hello-world', 'some data',
-                                        'greghaynes-dev')
-        return {}
+        return swift.KeystoneSession(swift_config.auth_url,
+                                     swift_config.project_id,
+                                     swift_config.user_id,
+                                     swift_config.password)
+
+    def _swift_client(self, keystone_session):
+        swift_config = self.config.swift
+        return swift.SwiftClient(keystone_session,
+                                 swift_config.region_id,
+                                 swift_config.interface)
 
 
 def main():

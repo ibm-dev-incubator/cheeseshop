@@ -1,10 +1,15 @@
+from unittest import mock
+
 from aiohttp import FormData
 
+from cheeseshop.tests import fakes
 from cheeseshop.tests.functional import base
 
 
 class TestUploads(base.FunctionalTestCase):
-    async def test_upload(self):
+    @mock.patch('swift.KeystoneSession')
+    @mock.patch('cheeseshop.main.swift.SwiftClient')
+    async def test_upload(self, keystone_session, swift_client):
         resp = await self.client.get("/upload")
         self.assertEqual(resp.status, 200)
         resp_text = await resp.text()
@@ -19,5 +24,6 @@ class TestUploads(base.FunctionalTestCase):
                        b'aaaaaaaaaaaa',
                        filename='test.replay',
                        content_type='text/ascii')
+
         resp = await self.client.post("/upload", data=data)
         self.assertEqual(resp.status, 200)
