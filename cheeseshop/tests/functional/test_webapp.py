@@ -32,6 +32,13 @@ class TestUploads(base.FunctionalTestCase):
                 resp_text = await resp.text()
                 self.assertEqual(resp.status, 200)
 
+        # test that we stored the replay in swift
         uuid = re.search('UUID: (.*)</li>', resp_text).group(1)
         self.assertEqual(fakes.get_swift_object(uuid, 'replays_container'),
                          b'aaaaaaaaaaaa')
+
+        # test that the replay shows up in replay list
+        resp = await self.client.get("/list_replays")
+        self.assertEqual(resp.status, 200)
+        resp_text = await resp.text()
+        self.assertTrue(re.search(uuid, resp_text))

@@ -77,7 +77,7 @@ class App(object):
 
         async with self.sql_pool.acquire() as conn:
             async with conn.transaction():
-                replay.set_upload_state(
+                await replay.set_upload_state(
                     conn,
                     dbapi.ReplayUploadState.COMPLETE
                 )
@@ -87,14 +87,14 @@ class App(object):
             'replay': replay
         }
 
-    async def handle_list_replays(self, request):
-        engine = request.app['engine']
-        body = '<html><body>'
-        async with engine.acquire() as conn:
-            async for row in conn.execute(dbapi.replays.select()):
-                body += '<p>{}: {}</p>\n'.format(row.sha1sum, row.filename)
-            body += "</body></html>"
-        return web.Response(body=body)
+    @aiohttp_jinja2.template('list_replays.html')
+    @db.with_transaction
+    async def handle_list_replays(self, conn, request):
+        replays = await dbapi.Replay.get_all(conn)
+        return {
+            'replays': replays
+        }
+
 
     def _keystone_session(self):
         swift_config = self.config.swift

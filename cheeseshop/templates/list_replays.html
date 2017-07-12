@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}List Replays{% endblock %}
+{% block content %}
+<h2>Replays</h2>
+<ul>
+{% for replay in replays %}
+    <li>UUID: {{ replay.uuid }}</li>
+{% endfor %}
+</ul>
+{% endblock %}
