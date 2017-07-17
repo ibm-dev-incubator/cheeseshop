@@ -86,6 +86,15 @@ class Replay(object):
         return Replay(row['id'], uuid, game_id, upload_state, sha1sum)
 
     @staticmethod
+    async def get_all(conn):
+        replays = []
+        async for record in conn.cursor('''
+            SELECT * FROM replays
+        '''):
+            replays.append(Replay.from_db_row(record))
+        return replays
+
+    @staticmethod
     async def get_by_uuid(conn, uuid):
         row = await conn.fetchrow('''
             SELECT * FROM replays WHERE uuid = $1
@@ -114,6 +123,12 @@ class Replay(object):
 
     def __eq__(self, other):
         return self.uuid == other.uuid
+
+    async def set_upload_state(self, conn, upload_state):
+        await conn.execute('''
+            UPDATE replays SET upload_state = $1
+            WHERE id = $2
+        ''', upload_state.value, self.id)
 
 
 async def create_schema(conn):
