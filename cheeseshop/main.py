@@ -77,7 +77,7 @@ class App(object):
 
         async with self.sql_pool.acquire() as conn:
             async with conn.transaction():
-                await replay.set_upload_state(
+                replay.set_upload_state(
                     conn,
                     dbapi.ReplayUploadState.COMPLETE
                 )
@@ -94,7 +94,6 @@ class App(object):
         return {
             'replays': replays
         }
-
 
     def _keystone_session(self):
         swift_config = self.config.swift
