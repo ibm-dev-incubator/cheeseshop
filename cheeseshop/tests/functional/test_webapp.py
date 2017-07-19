@@ -73,3 +73,21 @@ class TestCsGo(base.FunctionalTestCase):
 
         ws_recv = await ws.receive()
         self.assertEqual(ws_recv.json(), gsi_data)
+
+        ws2 = await self.client.ws_connect(ws_uri)
+        gsi_data = {'test-key': 'test-val-2'}
+        await self.client.post(source_base_uri + 'input', json=gsi_data)
+
+        ws_recv = await ws.receive()
+        self.assertEqual(ws_recv.json(), gsi_data)
+        ws_recv = await ws2.receive()
+        self.assertEqual(ws_recv.json(), gsi_data)
+
+        await ws.close()
+
+        gsi_data = {'test-key': 'test-val-3'}
+        await self.client.post(source_base_uri + 'input', json=gsi_data)
+        ws_recv = await ws2.receive()
+        self.assertEqual(ws_recv.json(), gsi_data)
+
+        await ws2.close()
