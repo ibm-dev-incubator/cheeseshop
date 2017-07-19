@@ -76,7 +76,7 @@ class CsGoApi(gameapi.GameApi):
 
     async def _handle_play_gsi(self, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
-        player = GsiPlayer(request, gsi_id)
+        player = GsiPlayer(request, streamer_uuid)
         try:
             self._gsi_players[streamer_uuid].append(player)
             return await player.handle()
