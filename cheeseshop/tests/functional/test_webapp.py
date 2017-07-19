@@ -42,3 +42,25 @@ class TestUploads(base.FunctionalTestCase):
         self.assertEqual(resp.status, 200)
         resp_text = await resp.text()
         self.assertTrue(re.search(uuid, resp_text))
+
+
+class TestCsGo(base.FunctionalTestCase):
+    async def test_streamer(self):
+        resp = await self.client.get("/games/csgo/gsi/sources")
+        self.assertEqual(resp.status, 200)
+
+        data = FormData()
+        data.add_field('source_name', 'test_source')
+
+        resp = await self.client.post("/games/csgo/gsi/sources",
+                                      data=data)
+        self.assertEqual(resp.status, 200)
+        resp_text = await resp.text()
+        uuid = re.search('Source UUID: (.*)</p>', resp_text).group(1)
+        source_url = re.search('URL for GSI config: (.*)</p>',
+                               resp_text).group(1)
+
+        resp = await self.client.get("/games/csgo/gsi/sources")
+        self.assertEqual(resp.status, 200)
+        resp_text = await resp.text()
+        self.assertTrue(re.search(uuid, resp_text))

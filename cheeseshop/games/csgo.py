@@ -2,10 +2,13 @@ import asyncio
 import collections
 from concurrent.futures import FIRST_COMPLETED
 import json
+import uuid
 
 from aiohttp import web
 import aiohttp_jinja2
 
+from cheeseshop import db
+from cheeseshop import dbapi
 from cheeseshop.games import gameapi
 
 
@@ -48,16 +51,20 @@ class CsGoApi(gameapi.GameApi):
         self._gsi_players = collections.defaultdict(list)
 
     def add_routes(self, router):
-        router.add_post('/games/csgo/gsi/{streamer_id}/input',
+        router.add_post('/games/csgo/gsi/sources/{streamer_uuid}/input',
                         self._handle_input_gsi)
-        router.add_get('/games/csgo/gsi/{streamer_id}/play',
+        router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/play',
                        self._handle_play_gsi)
+        router.add_get('/games/csgo/gsi/sources',
+                       self._handle_get_gsi_source)
+        router.add_post('/games/csgo/gsi/sources',
+                        self._handle_post_gsi_source)
 
     @aiohttp_jinja2.template('get_upload.html')
     async def _handle_input_gsi(self, request):
-        streamer_id = request.match_info.get('streamer_id')
+        streamer_uuid = request.match_info.get('streamer_uuid')
         gsi_data = await request.json()
-        for player in self._gsi_players[streamer_id]:
+        for player in self._gsi_players[streamer_uuid]:
             await player.handle_event(gsi_data)
         print()
         print()
@@ -67,14 +74,36 @@ class CsGoApi(gameapi.GameApi):
         print()
         return {}
 
-    @aiohttp_jinja2.template('handle_play.html')
     async def _handle_play_gsi(self, request):
-        print ('=')
-        streamer_id = request.match_info.get('streamer_id')
-        player = GsiPlayer(request,  streamer_id)
+        streamer_uuid = request.match_info.get('streamer_uuid')
+        player = GsiPlayer(request, gsi_id)
         try:
-            self._gsi_players[streamer_id].append(player)
-            #return await player.handle()
+            self._gsi_players[streamer_uuid].append(player)
+            return await player.handle()
         finally:
-            self._gsi_players[streamer_id].remove(player)
-        return {}
+            self._gsi_players[streamer_uuid].remove(player)
+
+    @aiohttp_jinja2.template('get_gsi.html')
+    @db.with_transaction
+    async def _handle_get_gsi_source(self, conn, request):
+        streamers = await dbapi.CsGoStreamer.get_all(conn)
+        return {
+            'streamers': streamers
+        }
+
+    @aiohttp_jinja2.template('post_gsi_source.html')
+    @db.with_transaction
+    async def _handle_post_gsi_source(self, conn, request):
+        req_data = await request.post()
+        name = req_data['source_name']
+        streamer_uuid = uuid.uuid4()
+        streamer = await dbapi.CsGoStreamer.create(conn, str(streamer_uuid),
+                                                   name)
+        return {
+            'streamer': streamer,
+            'streamer_gsi_url': self._url_for_streamer(streamer)
+        }
+
+    def _url_for_streamer(self, streamer):
+        return (self.config.base_uri +
+                '/games/csgo/gsi/sources/%s/input' % streamer.uuid)

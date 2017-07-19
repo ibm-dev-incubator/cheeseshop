@@ -34,8 +34,9 @@ class Config(object):
         return Config(raw_config['host'], raw_config['port'], swift_config,
                       sql_config)
 
-    def __init__(self, host, port, swift, sql):
+    def __init__(self, host, port, base_uri, swift, sql):
         self.host = host
         self.port = int(port)
+        self.base_uri = base_uri
         self.swift = swift
         self.sql = sql
