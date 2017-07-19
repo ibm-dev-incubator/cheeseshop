@@ -18,7 +18,7 @@ class GsiPlayer(object):
 
     async def handle(self):
         self._ws = web.WebSocketResponse()
-        await self.ws.prepare(self._request)
+        await self._ws.prepare(self._request)
 
         send_task = asyncio.ensure_future(self._send())
         listen_task = asyncio.ensure_future(self._listen())
@@ -67,11 +67,14 @@ class CsGoApi(gameapi.GameApi):
         print()
         return {}
 
+    @aiohttp_jinja2.template('handle_play.html')
     async def _handle_play_gsi(self, request):
+        print ('=')
         streamer_id = request.match_info.get('streamer_id')
-        player = GsiPlayer(request, gsi_id)
+        player = GsiPlayer(request,  streamer_id)
         try:
             self._gsi_players[streamer_id].append(player)
-            return await player.handle()
+            #return await player.handle()
         finally:
             self._gsi_players[streamer_id].remove(player)
+        return {}
