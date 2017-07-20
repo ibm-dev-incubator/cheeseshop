@@ -71,6 +71,12 @@ class TestCsGo(base.FunctionalTestCase):
         gsi_data = {'test-key': 'test-val'}
         await self.client.post(source_base_uri + 'input', json=gsi_data)
 
+        resp = await self.client.get(source_base_uri + 'replay')
+        self.assertEqual(resp.status, 200)
+        replay_data = await resp.json()
+        self.assertEqual(len(replay_data), 1)
+        self.assertEqual(replay_data[0]['event'], gsi_data)
+
         ws_recv = await ws.receive()
         self.assertEqual(ws_recv.json(), gsi_data)
 

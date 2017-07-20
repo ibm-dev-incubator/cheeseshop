@@ -178,6 +178,14 @@ class CsGoStreamer(object):
         return CsGoStreamer.from_row(row)
 
     @staticmethod
+    async def get_by_uuid(conn, uuid):
+        row = await conn.fetchrow('''
+            SELECT * FROM cs_go_streamer
+            WHERE uuid = $1
+        ''', uuid)
+        return CsGoStreamer.from_row(row)
+
+    @staticmethod
     def from_row(row):
         return CsGoStreamer(row['id'], row['uuid'], row['name'])
 
@@ -198,6 +206,30 @@ class CsGoGsiEvent(object):
                 event json
             )
         ''')
+
+    @staticmethod
+    async def create(conn, time, streamer_id, event):
+        row = await conn.fetchrow('''
+            INSERT INTO cs_go_gsi_events(time, streamer_id, event)
+            VALUES($1, $2, $3)
+            RETURNING id, time
+        ''', time, streamer_id, event)
+        return CsGoGsiEvent(row['id'], row['time'], streamer_id, event)
+
+    @staticmethod
+    async def get_by_streamer_id(conn, streamer_id):
+        events = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_gsi_events
+            WHERE streamer_id = $1
+        ''', streamer_id):
+            events.append(CsGoGsiEvent.from_row(record))
+        return events
+
+    @staticmethod
+    def from_row(row):
+        return CsGoGsiEvent(row['id'], row['time'], row['streamer_id'],
+                            row['event'])
 
     def __init__(self, id_, time, streamer_id, event):
         self.id = id_

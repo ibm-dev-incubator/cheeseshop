@@ -1,6 +1,7 @@
 import asyncio
 import collections
 from concurrent.futures import FIRST_COMPLETED
+import datetime
 import json
 import uuid
 
@@ -55,15 +56,25 @@ class CsGoApi(gameapi.GameApi):
                         self._handle_input_gsi)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/play',
                        self._handle_play_gsi)
+        router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/replay',
+                       self._handle_replay_gsi)
         router.add_get('/games/csgo/gsi/sources',
                        self._handle_get_gsi_source)
         router.add_post('/games/csgo/gsi/sources',
                         self._handle_post_gsi_source)
 
     @aiohttp_jinja2.template('get_upload.html')
-    async def _handle_input_gsi(self, request):
+    @db.with_transaction
+    async def _handle_input_gsi(self, conn, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
         gsi_data = await request.json()
+
+        streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
+        event = await dbapi.CsGoGsiEvent.create(conn,
+                                                datetime.datetime.now(),
+                                                streamer.id,
+                                                json.dumps(gsi_data))
+
         for player in self._gsi_players[streamer_uuid]:
             await player.handle_event(gsi_data)
         print()
@@ -82,6 +93,20 @@ class CsGoApi(gameapi.GameApi):
             return await player.handle()
         finally:
             self._gsi_players[streamer_uuid].remove(player)
+
+    @db.with_transaction
+    async def _handle_replay_gsi(self, conn, request):
+        streamer_uuid = request.match_info.get('streamer_uuid')
+        streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
+        events = await dbapi.CsGoGsiEvent.get_by_streamer_id(conn, streamer.id)
+        dict_events = []
+        for event in events:
+            time_str = str(event.time)
+            dict_events.append({
+                'time': time_str,
+                'event': json.loads(event.event)
+            })
+        return web.json_response(dict_events)
 
     @aiohttp_jinja2.template('get_gsi.html')
     @db.with_transaction
