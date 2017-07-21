@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import sys
 import uuid
 
@@ -34,6 +35,9 @@ class App(object):
         router.add_get('/upload', self.handle_get_upload)
         router.add_post('/upload', self.handle_post_upload)
         router.add_get('/list_replays', self.handle_list_replays)
+        router.add_static('/static/',
+                          path=os.path.dirname(__file__) + '/static',
+                          name='static')
 
         self._csgo_api.add_routes(router)
 

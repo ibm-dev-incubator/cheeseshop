@@ -62,6 +62,16 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_get_gsi_source)
         router.add_post('/games/csgo/gsi/sources',
                         self._handle_post_gsi_source)
+        router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
+                       self._handle_gsi_deathlog)
+
+    @aiohttp_jinja2.template('csgo_deathlog.html')
+    async def _handle_gsi_deathlog(self, request):
+        streamer_uuid = request.match_info.get('streamer_uuid')
+        ws_url = '/games/csgo/gsi/sources/%s/play' % streamer_uuid
+        return {
+            'gsi_websocket_url': ws_url
+        }
 
     @aiohttp_jinja2.template('get_upload.html')
     @db.with_transaction
