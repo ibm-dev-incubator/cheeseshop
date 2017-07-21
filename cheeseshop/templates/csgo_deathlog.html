@@ -20,13 +20,12 @@
     <script>
       $(function () {
         var all_players_match_stats = {};
-        var socket = io("{{ gsi_websocket_url }}");
-        $('form').submit(function(){
-          socket.emit('chat message', $('#m').val());
-          $('#m').val('');
-          return false;
-        });
-        socket.on('chat message', function(msg){
+        var connection = new WebSocket('{{ gsi_websocket_url }}');
+        connection.onopen = function(){
+             /*Send a small message to the console once the connection is established */
+             console.log('Connection open!');
+        }
+        connection.onmessage = function(e){
           console.log(Object.keys(msg.allplayers));
           //$("#deathlog").html("");
           Object.keys(msg.allplayers).forEach ( function (steam_id, index) {
@@ -46,7 +45,7 @@
 
             console.log(msg.allplayers[steam_id]['match_stats']);
           });
-        });
+        };
       });
     </script>
 {% endblock %}
