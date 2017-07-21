@@ -238,11 +238,47 @@ class CsGoGsiEvent(object):
         self.event = event
 
 
+class CsGoMap(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_map(
+                id serial PRIMARY KEY,
+                start_time timestamp,
+                streamer_id integer REFERENCES cs_go_streamer (id),
+                map_name text
+            )
+        ''')
+
+    def __init__(self, id_, start_time, streamer_id, map_name):
+        self.id = id_
+        self.start_time = start_time
+        self.streamer_id = streamer_id
+        self.map_name = map_name
+
+
+class CsGoEventMapRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_event_map_releation(
+                event_id integer REFERENCES cs_go_gsi_events (id),
+                map_id integer REFERENCES cs_go_map (id)
+            )
+        ''')
+
+    def __init__(self, event_id, map_id):
+        self.event_id = event_id
+        self.map_id = map_id
+
+
 async def create_schema(conn):
     await Game.create_schema(conn)
     await Replay.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
+    await CsGoMap.create_schema(conn)
+    await CsGoEventMapRelation.create_schema(conn)
 
 
 async def create_initial_records(conn):
