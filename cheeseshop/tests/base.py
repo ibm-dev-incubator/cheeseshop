@@ -18,4 +18,5 @@ class TestCase(asynctest.TestCase, asyncfixtures.TestWithAsyncFixtures):
                                       'cheeseshop-%s' % uuid.uuid4(),
                                       'localhost', 5432,
                                       'cheeseshop')
-        self.config = config.Config('::', 8080, swift_config, sql_config)
+        self.config = config.Config('::', 8080, 'http://localhost',
+                                    swift_config, sql_config)

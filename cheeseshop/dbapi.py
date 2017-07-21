@@ -73,6 +73,9 @@ class Replay(object):
             )
         ''')
         await conn.execute('''
+            CREATE UNIQUE INDEX ON replays (uuid)
+        ''')
+        await conn.execute('''
             CREATE UNIQUE INDEX ON replays (sha1sum)
         ''')
 
@@ -131,9 +134,115 @@ class Replay(object):
         ''', upload_state.value, self.id)
 
 
+class CsGoStreamer(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_streamer(
+                id serial PRIMARY KEY,
+                uuid text UNIQUE NOT NULL,
+                name text UNIQUE NOT NULL
+            )
+        ''')
+        await conn.execute('''
+            CREATE UNIQUE INDEX ON cs_go_streamer (uuid)
+        ''')
+        await conn.execute('''
+            CREATE UNIQUE INDEX ON cs_go_streamer (name)
+        ''')
+
+    @staticmethod
+    async def create(conn, uuid, name):
+        row = await conn.fetchrow('''
+            INSERT INTO cs_go_streamer(uuid, name)
+            VALUES($1, $2)
+            RETURNING id
+        ''', uuid, name)
+        return CsGoStreamer(row['id'], uuid, name)
+
+    @staticmethod
+    async def get_all(conn):
+        streamers = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_streamer
+        '''):
+            streamers.append(CsGoStreamer.from_row(record))
+        return streamers
+
+    @staticmethod
+    async def get_by_name(conn, name):
+        row = await conn.fetchrow('''
+            SELECT * FROM cs_go_streamer
+            WHERE name = $1
+        ''', name)
+        return CsGoStreamer.from_row(row)
+
+    @staticmethod
+    async def get_by_uuid(conn, uuid):
+        row = await conn.fetchrow('''
+            SELECT * FROM cs_go_streamer
+            WHERE uuid = $1
+        ''', uuid)
+        return CsGoStreamer.from_row(row)
+
+    @staticmethod
+    def from_row(row):
+        return CsGoStreamer(row['id'], row['uuid'], row['name'])
+
+    def __init__(self, id_, uuid, name):
+        self.id = id_
+        self.uuid = uuid
+        self.name = name
+
+
+class CsGoGsiEvent(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_gsi_events(
+                id serial PRIMARY KEY,
+                time timestamp,
+                streamer_id integer REFERENCES cs_go_streamer (id),
+                event json
+            )
+        ''')
+
+    @staticmethod
+    async def create(conn, time, streamer_id, event):
+        row = await conn.fetchrow('''
+            INSERT INTO cs_go_gsi_events(time, streamer_id, event)
+            VALUES($1, $2, $3)
+            RETURNING id, time
+        ''', time, streamer_id, event)
+        return CsGoGsiEvent(row['id'], row['time'], streamer_id, event)
+
+    @staticmethod
+    async def get_by_streamer_id(conn, streamer_id):
+        events = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_gsi_events
+            WHERE streamer_id = $1
+        ''', streamer_id):
+            events.append(CsGoGsiEvent.from_row(record))
+        return events
+
+    @staticmethod
+    def from_row(row):
+        return CsGoGsiEvent(row['id'], row['time'], row['streamer_id'],
+                            row['event'])
+
+    def __init__(self, id_, time, streamer_id, event):
+        self.id = id_
+        self.time = time
+        self.streamer_id = streamer_id
+        self.event = event
+
+
 async def create_schema(conn):
     await Game.create_schema(conn)
     await Replay.create_schema(conn)
+    await CsGoStreamer.create_schema(conn)
+    await CsGoGsiEvent.create_schema(conn)
 
 
 async def create_initial_records(conn):

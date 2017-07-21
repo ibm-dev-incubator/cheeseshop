@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}CS:GO Game State Integration{% endblock %}
+{% block content %}
+    <h2>Create a casting source</h2>
+    <form>
+        Source Name <input type="text" name="source_name" />
+        <input type="submit" value="Create" />
+    </form><br />
+    <h2>Streaming sources</h2>
+    <ul>
+        {% for streamer in streamers %}
+        <li>{{ streamer.name }} - {{ streamer.uuid }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
