@@ -68,7 +68,7 @@ class CsGoApi(gameapi.GameApi):
     @aiohttp_jinja2.template('csgo_deathlog.html')
     async def _handle_gsi_deathlog(self, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
-        ws_url = 'ws://192.168.0.17:8080/games/csgo/gsi/sources/%s/play' % streamer_uuid
+        ws_url = '/games/csgo/gsi/sources/%s/play' % streamer_uuid
         return {
             'gsi_websocket_url': ws_url
         }

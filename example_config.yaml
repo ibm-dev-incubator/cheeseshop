@@ -1,5 +1,5 @@
 host: 0.0.0.0
-port: 8080
+port: 8081
 base_uri: http://localhost
 
 swift:
@@ -13,6 +13,6 @@ swift:
 sql:
   host: localhost
   port: 5432
-  database: cheeseshop-test
+  database: cheeseshop
   user: cheeseshop
   password: cheeseshop
