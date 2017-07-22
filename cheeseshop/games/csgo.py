@@ -155,6 +155,14 @@ class CsGoApi(gameapi.GameApi):
             'gsi_websocket_url': ws_url
         }
 
+    @aiohttp_jinja2.template('csgo_moneylog.html')
+    async def _handle_gsi_money(self, request):
+        streamer_uuid = request.match_info.get('streamer_uuid')
+        ws_url = 'ws://localhost:5051/games/csgo/gsi/sources/%s/play' % streamer_uuid
+        return {
+            'gsi_websocket_url': ws_url
+        }
+
     @aiohttp_jinja2.template('get_upload.html')
     @db.with_transaction
     async def _handle_input_gsi(self, conn, request):
