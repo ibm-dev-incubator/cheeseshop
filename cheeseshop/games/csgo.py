@@ -50,10 +50,11 @@ class GsiPlayer(object):
 class MapState(object):
     @staticmethod
     def from_gsi_event(event):
-        phase = event.get('map', {}).get('phase')
-        name = event.get('map', {}).get('name')
-        team_ct = event.get('team_ct', {}).get('name')
-        team_t = event.get('team_t', {}).get('name')
+        map_ = event.get('map', {})
+        phase = map_.get('phase')
+        name = map_.get('name')
+        team_ct = map_.get('team_ct', {}).get('name')
+        team_t = map_.get('team_t', {}).get('name')
         return MapState(phase, name, team_ct, team_t)
 
     def __init__(self, phase, name, team_ct, team_t):
@@ -62,20 +63,22 @@ class MapState(object):
         self.team_ct = team_ct
         self.team_t = team_t
 
+    def is_new_map(self, new_map_state):
+        if self.phase is None and new_map_state.phase is not None:
+            return True
+        if (self.phase == 'gameover' and
+            new_map_state.phase != 'gameover'):
+            return True
+        return (self.name != new_map_state.name or
+                self.team_ct != new_map_state.team_ct or
+                self.team_t != new_map_state.team_t)
+
 
 class GsiSource(object):
     def __init__(self):
         self.map_state = MapState.from_gsi_event({})
         self.map_id = None
         self.players = []
-
-    def is_new_map(self, new_map_state):
-        if (self.map_state.phase == 'gameover' and
-            new_map_state.phase != 'gameover'):
-            return True
-        return (self.map_state.name != new_map_state.name or
-                self.map_state.team_ct != new_map_state.team_ct or
-                self.map_state.team_t != new_map_state.team_t)
 
 
 class CsGoApi(gameapi.GameApi):
@@ -94,6 +97,8 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_get_gsi_source)
         router.add_post('/games/csgo/gsi/sources',
                         self._handle_post_gsi_source)
+        router.add_get('/games/csgo/gsi/maps',
+                       self._handle_gsi_maps)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
                        self._handle_gsi_deathlog)
 
@@ -115,8 +120,9 @@ class CsGoApi(gameapi.GameApi):
         gsi_data = await request.json()
         map_state = MapState.from_gsi_event(gsi_data)
         map_id = gsi_source.map_id
-        if gsi_source.is_new_map(map_state):
+        if gsi_source.map_state.is_new_map(map_state):
             map_id = await self._create_mapid(conn, map_state, streamer)
+        gsi_source.map_state = map_state
 
         event = await dbapi.CsGoGsiEvent.create(conn,
                                                 datetime.datetime.now(),
@@ -177,9 +183,19 @@ class CsGoApi(gameapi.GameApi):
             'streamer_gsi_url': self._url_for_streamer(streamer)
         }
 
+    @aiohttp_jinja2.template('get_gsi_maps.html')
+    @db.with_transaction
+    async def _handle_gsi_maps(self, conn, request):
+        maps = await dbapi.CsGoMap.get_all(conn)
+        return {
+            'maps': maps
+        }
+
     async def _create_mapid(self, conn, map_state, streamer):
         return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
-                                          streamer.id, map_state.name)
+                                          streamer.id, map_state.name,
+                                          map_state.team_t,
+                                          map_state.team_ct)
 
     def _url_for_streamer(self, streamer):
         return (self.config.base_uri +

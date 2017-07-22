@@ -246,15 +246,42 @@ class CsGoMap(object):
                 id serial PRIMARY KEY,
                 start_time timestamp,
                 streamer_id integer REFERENCES cs_go_streamer (id),
-                map_name text
+                map_name text,
+                team_t text,
+                team_ct text
             )
         ''')
 
-    def __init__(self, id_, start_time, streamer_id, map_name):
+    @staticmethod
+    async def create(conn, start_time, streamer_id, map_name, team_t, team_ct):
+        row = await conn.fetchrow('''
+            INSERT INTO cs_go_map(start_time, streamer_id, map_name, team_t, team_ct)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        ''', start_time, streamer_id, map_name, team_t, team_ct)
+        return CsGoMap(row['id'], start_time, streamer_id, map_name, team_t, team_ct)
+
+    @staticmethod
+    async def get_all(conn):
+        maps = []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_map
+        '''):
+            maps.append(CsGoMap.from_row(record))
+        return maps
+
+    @staticmethod
+    def from_row(row):
+        return CsGoMap(row['id'], row['start_time'], row['streamer_id'],
+                       row['map_name'], row['team_t'], row['team_ct'])
+
+    def __init__(self, id_, start_time, streamer_id, map_name, team_t, team_ct):
         self.id = id_
         self.start_time = start_time
         self.streamer_id = streamer_id
         self.map_name = map_name
+        self.team_t = team_t
+        self.team_ct = team_ct
 
 
 class CsGoEventMapRelation(object):
