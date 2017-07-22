@@ -22,7 +22,7 @@ async def run(db_pool, streamer_uuid):
     offset = 0
     async with db_pool.acquire() as conn:
         streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
-        map_state = csgo.MapState.from_gsi_event({})
+        map_state = csgo.MapState()
         async with conn.transaction():
             while True:
                 ret = await dbapi.CsGoGsiEvent.get_oldest_by_streamer_id(
@@ -34,12 +34,8 @@ async def run(db_pool, streamer_uuid):
                 offset += stride
                 print('Processing %d events' % len(ret))
                 for event in ret:
-                    new_map_state = csgo.MapState.from_gsi_event(
-                        json.loads(event.event)
-                    )
-                    if map_state.is_new_map(new_map_state):
-                        await new_map_state.create_db_obj(conn, streamer)
-                    map_state = new_map_state
+                    await map_state.update(json.loads(event.event), conn,
+                                           streamer)
                 if len(ret) < stride: 
                     return
 

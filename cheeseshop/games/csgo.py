@@ -48,30 +48,45 @@ class GsiPlayer(object):
 
 
 class MapState(object):
-    @staticmethod
-    def from_gsi_event(event):
+    def __init__(self):
+        self.phase = None
+        self.name = None
+        self.team_ct = None
+        self.team_t = None
+        self._db_created = False
+
+    async def update(self, event, conn, streamer):
         map_ = event.get('map', {})
         phase = map_.get('phase')
         name = map_.get('name')
         team_ct = map_.get('team_ct', {}).get('name')
         team_t = map_.get('team_t', {}).get('name')
-        return MapState(phase, name, team_ct, team_t)
 
-    def __init__(self, phase, name, team_ct, team_t):
+        if self.is_new_map(phase, name, team_ct, team_t):
+            self._db_created = False
+
         self.phase = phase
         self.name = name
         self.team_ct = team_ct
         self.team_t = team_t
 
-    def is_new_map(self, new_map_state):
-        if self.phase is None and new_map_state.phase is not None:
+        await self._ensure_db(conn, streamer)
+
+    async def _ensure_db(self, conn, streamer):
+        if not self._db_created:
+            if None not in (self.phase, self.name, self.team_t, self.team_ct):
+                await self.create_db_obj(conn, streamer)
+                self._db_created = True
+
+    def is_new_map(self, phase, name, team_ct, team_t):
+        if self.phase is None and phase is not None:
             return True
         if (self.phase == 'gameover' and
-            new_map_state.phase != 'gameover'):
+            phase != 'gameover'):
             return True
-        return (self.name != new_map_state.name or
+        return (self.name != name or
                 set((self.team_t, self.team_ct)) !=
-                set((new_map_state.team_t, new_map_state.team_ct)))
+                set((team_t, team_ct)))
 
     @property
     def team_1(self):
@@ -95,7 +110,7 @@ class MapState(object):
 
 class GsiSource(object):
     def __init__(self):
-        self.map_state = MapState.from_gsi_event({})
+        self.map_state = MapState()
         self.map_id = None
         self.players = []
 
@@ -133,15 +148,11 @@ class CsGoApi(gameapi.GameApi):
     @db.with_transaction
     async def _handle_input_gsi(self, conn, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
-        gsi_source = self._gsi_sources[streamer_uuid]
         streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
 
         gsi_data = await request.json()
-        map_state = MapState.from_gsi_event(gsi_data)
-        map_id = gsi_source.map_id
-        if gsi_source.map_state.is_new_map(map_state):
-            await map_state.create_db_obj(conn, streamer)
-        gsi_source.map_state = map_state
+        gsi_source = self._gsi_sources[streamer_uuid]
+        await gsi_source.map_state.update(gsi_data, conn, streamer)
 
         event = await dbapi.CsGoGsiEvent.create(conn,
                                                 datetime.datetime.now(),
