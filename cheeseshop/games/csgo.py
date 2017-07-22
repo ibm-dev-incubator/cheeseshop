@@ -70,8 +70,8 @@ class MapState(object):
             new_map_state.phase != 'gameover'):
             return True
         return (self.name != new_map_state.name or
-                self.team_ct != new_map_state.team_ct or
-                self.team_t != new_map_state.team_t)
+                set((self.team_t, self.team_ct)) !=
+                set((new_map_state.team_t, new_map_state.team_ct)))
 
     @property
     def team_1(self):

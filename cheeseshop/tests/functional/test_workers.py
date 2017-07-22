@@ -44,12 +44,27 @@ class TestCsGoMapPopulator(base.FunctionalTestCase):
                                             streamer.id, json.dumps(gsi_data))
             await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
                                             streamer.id, json.dumps(gsi_data))
+
+            gsi_data['map']['phase'] = 'live'
+            await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
+                                            streamer.id, json.dumps(gsi_data))
+            await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
+                                            streamer.id, json.dumps(gsi_data))
+
+            gsi_data['map']['team_t']['name'] = 'team 4'
+            gsi_data['map']['team_ct']['name'] = 'team 3'
+            await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
+                                            streamer.id, json.dumps(gsi_data))
+            await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
+                                            streamer.id, json.dumps(gsi_data))
         await csgo_map_populator.run(self.pool, 'streamer-uuid')
 
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
         maps_resp_txt = await maps_resp.text()
-        self.assertTrue('<li>team 1 vs team 2 on map name</li>',
-                        maps_resp_txt)
-        self.assertTrue('<li>team 2 vs team 3 on map 2 name</li>',
-                        maps_resp_txt)
+        self.assertEqual(maps_resp_txt.count(
+            '<li>team 1 vs team 2 on map name</li>'
+        ), 1)
+        self.assertEqual(maps_resp_txt.count(
+            '<li>team 3 vs team 4 on map 2 name</li>'
+        ), 1)
