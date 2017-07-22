@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}CS:GO Death Log{% endblock %}
+{% block head %}
+<script src="/static/js/heatmap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font: 13px Helvetica, Arial; }
+  form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+  form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+  form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+  #deathlog { list-style-type: none; margin: 0; padding: 0; }
+  #deathlog li { padding: 5px 10px; }
+  #deathlog li:nth-child(odd) { background: #eee; }
+  #deathlog { margin-bottom: 40px }
+</style>
+{% endblock %}
+{% block content %}
+    <img id="map_image" src="/static/map_images/de_mirage_radar.png">
+    <ul id="positions"></ul>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var all_players_positions = {};
+        var connection = new WebSocket('{{ gsi_websocket_url }}');
+        connection.onopen = function(){
+          /*Send a small message to the console once the connection is established */
+          console.log('Connection open!');
+        }
+        connection.onmessage = function(msg){
+          //console.log(msg);
+          msg = JSON.parse(msg.data);
+          //console.log(Object.keys(msg.allplayers));
+          //$("#deathlog").html("");
+          Object.keys(msg.allplayers).forEach ( function (steam_id, index) {
+            //$('#deathlog').append($('<li>').text("Player: " + steam_id+ " // Kills: " + msg.allplayers[steam_id]['match_stats']['kills']));
+            position =  msg.allplayers[steam_id].position;
+            all_players_positions[steam_id] = position
+            window.scrollTo(0, document.body.scrollHeight);
+
+
+            //console.log(msg.allplayers[steam_id]['match_stats']);
+          });
+          $('#positions').html("");
+          Object.keys(all_players_positions).forEach ( function (steam_id, index) {
+            $('#positions').append($('<li>').text("Player: " + steam_id + " is at: " + all_players_positions[steam_id]));
+          });
+        };
+        // minimal heatmap instance configuration
+        var heatmapInstance = h337.create({
+            // only container is required, the rest will be defaults
+            container: document.querySelector('#map_image')
+        });
+
+        // now generate some random data
+        var points = [];
+        var max = 0;
+        var width = 840;
+        var height = 400;
+        var len = 200;
+
+        while (len--) {
+            var val = Math.floor(Math.random()*100);
+              max = Math.max(max, val);
+                var point = {
+                      x: Math.floor(Math.random()*width),
+                          y: Math.floor(Math.random()*height),
+                              value: val
+                                  };
+                  points.push(point);
+        }
+        // heatmap data format
+        var data = { 
+            max: max, 
+              data: points 
+        };
+        // if you have a set of datapoints always use setData instead of addData
+        // for data initialization
+        heatmapInstance.setData(data);
+      });
+    </script>
+{% endblock %}
+
