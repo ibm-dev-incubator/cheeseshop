@@ -73,7 +73,7 @@ class MapState(object):
         await self._ensure_db(conn, streamer)
 
     async def _ensure_db(self, conn, streamer):
-        if not self._db_created:
+        if self._db_created is False:
             if None not in (self.phase, self.name, self.team_t, self.team_ct):
                 await self.create_db_obj(conn, streamer)
                 self._db_created = True
@@ -161,12 +161,7 @@ class CsGoApi(gameapi.GameApi):
 
         for player in gsi_source.players:
             await player.handle_event(gsi_data)
-        print()
-        print()
-        print(json.dumps(gsi_data, indent=4, sort_keys=True))
-        print()
-        print('======================================')
-        print()
+
         return {}
 
     async def _handle_play_gsi(self, request):
