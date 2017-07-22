@@ -46,25 +46,13 @@ class TestUploads(base.FunctionalTestCase):
 
 class TestCsGo(base.FunctionalTestCase):
     async def test_streamer(self):
-        resp = await self.client.get("/games/csgo/gsi/sources")
-        self.assertEqual(resp.status, 200)
-
-        data = FormData()
-        data.add_field('source_name', 'test_source')
-
-        resp = await self.client.post("/games/csgo/gsi/sources",
-                                      data=data)
-        self.assertEqual(resp.status, 200)
-        resp_text = await resp.text()
-        uuid = re.search('Source UUID: (.*)</p>', resp_text).group(1)
-        self.assertTrue(re.search('URL for GSI config: (.*)</p>', resp_text))
-
+        uuid = await self._create_source()
         resp = await self.client.get("/games/csgo/gsi/sources")
         self.assertEqual(resp.status, 200)
         resp_text = await resp.text()
         self.assertTrue(re.search(uuid, resp_text))
 
-        source_base_uri = '/games/csgo/gsi/sources/%s/' % uuid
+        source_base_uri = self._get_source_base_uri(uuid)
         ws_uri = source_base_uri + 'play'
         ws = await self.client.ws_connect(ws_uri)
 
@@ -97,3 +85,70 @@ class TestCsGo(base.FunctionalTestCase):
         self.assertEqual(ws_recv.json(), gsi_data)
 
         await ws2.close()
+
+    async def _get_maps(self):
+        maps_resp = await self.client.get('/games/csgo/gsi/maps')
+        self.assertEqual(maps_resp.status, 200)
+        maps_resp_txt = await maps_resp.text()
+        return re.search('<li>(.*)</li>', maps_resp_txt)
+
+    async def test_streamer_map_change(self):
+        uuid = await self._create_source()
+        source_base_uri = self._get_source_base_uri(uuid)
+
+        # We shouldnt have any maps detected yet
+        self.assertFalse(await self._get_maps())
+
+        gsi_data = {
+            'map': {
+                'phase': 'live',
+                'team_t': {
+                    'name': 'team 1'
+                },
+                'team_ct': {
+                    'name': 'team 2'
+                },
+                'name': 'map name'
+            }
+        }
+        resp = await self._send_gsi(uuid, gsi_data)
+        self.assertEqual(resp.status, 200)
+
+        # We should have created a new map
+        maps = await self._get_maps()
+        self.assertTrue(maps)
+        self.assertEqual(maps.group(1),
+                         'team 1 vs team 2 on map name')
+
+        maps_resp = await self.client.get('/games/csgo/gsi/maps')
+        self.assertEqual(maps_resp.status, 200)
+
+        gsi_data['map']['phase'] = 'gameover'
+        resp = await self._send_gsi(uuid, gsi_data)
+        self.assertEqual(resp.status, 200)
+
+        gsi_data['map']['phase'] = 'live'
+        resp = await self._send_gsi(uuid, gsi_data)
+        self.assertEqual(resp.status, 200)
+
+    async def _create_source(self):
+        resp = await self.client.get("/games/csgo/gsi/sources")
+        self.assertEqual(resp.status, 200)
+
+        data = FormData()
+        data.add_field('source_name', 'test_source')
+
+        resp = await self.client.post("/games/csgo/gsi/sources",
+                                      data=data)
+        self.assertEqual(resp.status, 200)
+        resp_text = await resp.text()
+        uuid = re.search('Source UUID: (.*)</p>', resp_text).group(1)
+        self.assertTrue(re.search('URL for GSI config: (.*)</p>', resp_text))
+        return uuid
+
+    def _get_source_base_uri(self, source_uuid):
+        return '/games/csgo/gsi/sources/%s/' % source_uuid
+
+    async def _send_gsi(self, uuid, gsi_data):
+        uri = self._get_source_base_uri(uuid) + 'input'
+        return await self.client.post(uri, json=gsi_data)

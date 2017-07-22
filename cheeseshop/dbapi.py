@@ -238,11 +238,74 @@ class CsGoGsiEvent(object):
         self.event = event
 
 
+class CsGoMap(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_map(
+                id serial PRIMARY KEY,
+                start_time timestamp,
+                streamer_id integer REFERENCES cs_go_streamer (id),
+                map_name text,
+                team_1 text,
+                team_2 text
+            )
+        ''')
+
+    @staticmethod
+    async def create(conn, start_time, streamer_id, map_name, team_1, team_2):
+        row = await conn.fetchrow('''
+            INSERT INTO cs_go_map(start_time, streamer_id, map_name, team_1, team_2)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        ''', start_time, streamer_id, map_name, team_1, team_2)
+        return CsGoMap(row['id'], start_time, streamer_id, map_name, team_1, team_2)
+
+    @staticmethod
+    async def get_all(conn):
+        maps = []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_map
+        '''):
+            maps.append(CsGoMap.from_row(record))
+        return maps
+
+    @staticmethod
+    def from_row(row):
+        return CsGoMap(row['id'], row['start_time'], row['streamer_id'],
+                       row['map_name'], row['team_1'], row['team_2'])
+
+    def __init__(self, id_, start_time, streamer_id, map_name, team_1, team_2):
+        self.id = id_
+        self.start_time = start_time
+        self.streamer_id = streamer_id
+        self.map_name = map_name
+        self.team_1 = team_1
+        self.team_2 = team_2
+
+
+class CsGoEventMapRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_event_map_releation(
+                event_id integer REFERENCES cs_go_gsi_events (id),
+                map_id integer REFERENCES cs_go_map (id)
+            )
+        ''')
+
+    def __init__(self, event_id, map_id):
+        self.event_id = event_id
+        self.map_id = map_id
+
+
 async def create_schema(conn):
     await Game.create_schema(conn)
     await Replay.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
+    await CsGoMap.create_schema(conn)
+    await CsGoEventMapRelation.create_schema(conn)
 
 
 async def create_initial_records(conn):

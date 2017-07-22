@@ -2,6 +2,7 @@ import asyncio
 import collections
 from concurrent.futures import FIRST_COMPLETED
 import datetime
+from enum import Enum
 import json
 import uuid
 
@@ -46,10 +47,52 @@ class GsiPlayer(object):
             pass
 
 
+class MapState(object):
+    @staticmethod
+    def from_gsi_event(event):
+        map_ = event.get('map', {})
+        phase = map_.get('phase')
+        name = map_.get('name')
+        team_ct = map_.get('team_ct', {}).get('name')
+        team_t = map_.get('team_t', {}).get('name')
+        return MapState(phase, name, team_ct, team_t)
+
+    def __init__(self, phase, name, team_ct, team_t):
+        self.phase = phase
+        self.name = name
+        self.team_ct = team_ct
+        self.team_t = team_t
+
+    def is_new_map(self, new_map_state):
+        if self.phase is None and new_map_state.phase is not None:
+            return True
+        if (self.phase == 'gameover' and
+            new_map_state.phase != 'gameover'):
+            return True
+        return (self.name != new_map_state.name or
+                self.team_ct != new_map_state.team_ct or
+                self.team_t != new_map_state.team_t)
+
+    @property
+    def team_1(self):
+        return list(sorted((self.team_t, self.team_ct)))[0]
+
+    @property
+    def team_2(self):
+        return list(sorted((self.team_t, self.team_ct)))[1]
+
+
+class GsiSource(object):
+    def __init__(self):
+        self.map_state = MapState.from_gsi_event({})
+        self.map_id = None
+        self.players = []
+
+
 class CsGoApi(gameapi.GameApi):
     def __init__(self, config, sql_pool):
         super(CsGoApi, self).__init__(config, sql_pool)
-        self._gsi_players = collections.defaultdict(list)
+        self._gsi_sources = collections.defaultdict(GsiSource)
 
     def add_routes(self, router):
         router.add_post('/games/csgo/gsi/sources/{streamer_uuid}/input',
@@ -62,6 +105,8 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_get_gsi_source)
         router.add_post('/games/csgo/gsi/sources',
                         self._handle_post_gsi_source)
+        router.add_get('/games/csgo/gsi/maps',
+                       self._handle_gsi_maps)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
                        self._handle_gsi_deathlog)
 
@@ -77,15 +122,22 @@ class CsGoApi(gameapi.GameApi):
     @db.with_transaction
     async def _handle_input_gsi(self, conn, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
-        gsi_data = await request.json()
-
+        gsi_source = self._gsi_sources[streamer_uuid]
         streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
+
+        gsi_data = await request.json()
+        map_state = MapState.from_gsi_event(gsi_data)
+        map_id = gsi_source.map_id
+        if gsi_source.map_state.is_new_map(map_state):
+            map_id = await self._create_mapid(conn, map_state, streamer)
+        gsi_source.map_state = map_state
+
         event = await dbapi.CsGoGsiEvent.create(conn,
                                                 datetime.datetime.now(),
                                                 streamer.id,
                                                 json.dumps(gsi_data))
 
-        for player in self._gsi_players[streamer_uuid]:
+        for player in gsi_source.players:
             await player.handle_event(gsi_data)
         print()
         print()
@@ -99,10 +151,10 @@ class CsGoApi(gameapi.GameApi):
         streamer_uuid = request.match_info.get('streamer_uuid')
         player = GsiPlayer(request, streamer_uuid)
         try:
-            self._gsi_players[streamer_uuid].append(player)
+            self._gsi_sources[streamer_uuid].players.append(player)
             return await player.handle()
         finally:
-            self._gsi_players[streamer_uuid].remove(player)
+            self._gsi_sources[streamer_uuid].players.remove(player)
 
     @db.with_transaction
     async def _handle_replay_gsi(self, conn, request):
@@ -138,6 +190,20 @@ class CsGoApi(gameapi.GameApi):
             'streamer': streamer,
             'streamer_gsi_url': self._url_for_streamer(streamer)
         }
+
+    @aiohttp_jinja2.template('get_gsi_maps.html')
+    @db.with_transaction
+    async def _handle_gsi_maps(self, conn, request):
+        maps = await dbapi.CsGoMap.get_all(conn)
+        return {
+            'maps': maps
+        }
+
+    async def _create_mapid(self, conn, map_state, streamer):
+        return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
+                                          streamer.id, map_state.name,
+                                          map_state.team_1,
+                                          map_state.team_2)
 
     def _url_for_streamer(self, streamer):
         return (self.config.base_uri +
