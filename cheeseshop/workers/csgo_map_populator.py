@@ -12,6 +12,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description='cheeseshop webapp.')
     parser.add_argument('config_file', type=str,
                         help='Path to config file')
+    parser.add_argument('streamer_uuid', trype=str)
     return parser.parse_args(args)
 
 
@@ -46,4 +47,4 @@ def main():
 
     loop = asyncio.get_event_loop()
     pool = loop.run_until_complete(db.create_pool(config.sql))
-    loop.run_until_complete(run(pool))
+    loop.run_until_complete(run(pool, args.streamer_uuid))
