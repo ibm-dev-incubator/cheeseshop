@@ -247,19 +247,19 @@ class CsGoMap(object):
                 start_time timestamp,
                 streamer_id integer REFERENCES cs_go_streamer (id),
                 map_name text,
-                team_t text,
-                team_ct text
+                team_1 text,
+                team_2 text
             )
         ''')
 
     @staticmethod
-    async def create(conn, start_time, streamer_id, map_name, team_t, team_ct):
+    async def create(conn, start_time, streamer_id, map_name, team_1, team_2):
         row = await conn.fetchrow('''
-            INSERT INTO cs_go_map(start_time, streamer_id, map_name, team_t, team_ct)
+            INSERT INTO cs_go_map(start_time, streamer_id, map_name, team_1, team_2)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id
-        ''', start_time, streamer_id, map_name, team_t, team_ct)
-        return CsGoMap(row['id'], start_time, streamer_id, map_name, team_t, team_ct)
+        ''', start_time, streamer_id, map_name, team_1, team_2)
+        return CsGoMap(row['id'], start_time, streamer_id, map_name, team_1, team_2)
 
     @staticmethod
     async def get_all(conn):
@@ -273,15 +273,15 @@ class CsGoMap(object):
     @staticmethod
     def from_row(row):
         return CsGoMap(row['id'], row['start_time'], row['streamer_id'],
-                       row['map_name'], row['team_t'], row['team_ct'])
+                       row['map_name'], row['team_1'], row['team_2'])
 
-    def __init__(self, id_, start_time, streamer_id, map_name, team_t, team_ct):
+    def __init__(self, id_, start_time, streamer_id, map_name, team_1, team_2):
         self.id = id_
         self.start_time = start_time
         self.streamer_id = streamer_id
         self.map_name = map_name
-        self.team_t = team_t
-        self.team_ct = team_ct
+        self.team_1 = team_1
+        self.team_2 = team_2
 
 
 class CsGoEventMapRelation(object):

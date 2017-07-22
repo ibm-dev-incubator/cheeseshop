@@ -103,10 +103,10 @@ class TestCsGo(base.FunctionalTestCase):
             'map': {
                 'phase': 'live',
                 'team_t': {
-                    'name': 't team'
+                    'name': 'team 1'
                 },
                 'team_ct': {
-                    'name': 'ct team'
+                    'name': 'team 2'
                 },
                 'name': 'map name'
             }
@@ -118,7 +118,7 @@ class TestCsGo(base.FunctionalTestCase):
         maps = await self._get_maps()
         self.assertTrue(maps)
         self.assertEqual(maps.group(1),
-                         't team (T) vs ct team (CT) on map name')
+                         'team 1 vs team 2 on map name')
 
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)

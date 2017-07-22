@@ -73,6 +73,14 @@ class MapState(object):
                 self.team_ct != new_map_state.team_ct or
                 self.team_t != new_map_state.team_t)
 
+    @property
+    def team_1(self):
+        return list(sorted((self.team_t, self.team_ct)))[0]
+
+    @property
+    def team_2(self):
+        return list(sorted((self.team_t, self.team_ct)))[1]
+
 
 class GsiSource(object):
     def __init__(self):
@@ -194,8 +202,8 @@ class CsGoApi(gameapi.GameApi):
     async def _create_mapid(self, conn, map_state, streamer):
         return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
                                           streamer.id, map_state.name,
-                                          map_state.team_t,
-                                          map_state.team_ct)
+                                          map_state.team_1,
+                                          map_state.team_2)
 
     def _url_for_streamer(self, streamer):
         return (self.config.base_uri +
