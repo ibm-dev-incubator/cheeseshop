@@ -57,7 +57,7 @@ class TestCsGoMapPopulator(base.FunctionalTestCase):
                                             streamer.id, json.dumps(gsi_data))
             await dbapi.CsGoGsiEvent.create(conn, datetime.datetime.now(),
                                             streamer.id, json.dumps(gsi_data))
-        await csgo_map_populator.run(self.pool, 'streamer-uuid')
+        await csgo_map_populator.run(self.pool, 'streamer-uuid', 5)
 
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
