@@ -217,6 +217,20 @@ class CsGoGsiEvent(object):
         return CsGoGsiEvent(row['id'], row['time'], streamer_id, event)
 
     @staticmethod
+    async def get_oldest_by_streamer_id(conn, streamer_id,
+                                        limit=100, offset=0):
+        evs = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_gsi_events
+            WHERE streamer_id = $1
+            ORDER BY id ASC
+            LIMIT $2
+            OFFSET $3
+        ''', streamer_id, limit, offset):
+            evs.append(CsGoGsiEvent.from_row(record))
+        return evs
+
+    @staticmethod
     async def get_by_streamer_id(conn, streamer_id):
         events = []
         async for record in conn.cursor('''
@@ -293,6 +307,29 @@ class CsGoEventMapRelation(object):
                 map_id integer REFERENCES cs_go_map (id)
             )
         ''')
+
+    @staticmethod
+    async def get_oldest(conn, streamer_id, limit=100, offset=0):
+        ev_maps = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_gsi_events
+            INNER JOIN cs_go_event_map_releation ON cs_go_gsi_events.id = cs_go_event_map_releation.event_id
+            INNER JOIN cs_go_map ON cs_go_event_map_releation.map_id = cs_go_map.id
+            WHERE cs_go_gsi_events.streamer_id = $1
+            ORDER BY cs_go_gsi_events.id ASC
+            LIMIT $2
+            OFFSET $3
+        ''', streamer_id, limit, offset):
+            ev = CsGoGsiEvent(conn, streamer_id,
+                              record['cs_go_gsi_events.time'],
+                              record['cs_go_gsi_events.event'])
+            map_ = CsGoMap(record['cs_go_map.start_time'],
+                           record['cs_go_map.streamer_id'],
+                           record['cs_go_map.map_name'],
+                           record['cs_go_map.team_1'],
+                           record['cs_go_map.team_2'])
+            ev_maps.append((ev, map_))
+        return ev_maps
 
     def __init__(self, event_id, map_id):
         self.event_id = event_id
