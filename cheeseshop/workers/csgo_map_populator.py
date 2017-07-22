@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import sys
 
 from cheeseshop import config as cs_config
 from cheeseshop import db
@@ -12,7 +13,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description='cheeseshop webapp.')
     parser.add_argument('config_file', type=str,
                         help='Path to config file')
-    parser.add_argument('streamer_uuid', trype=str)
+    parser.add_argument('streamer_uuid', type=str)
     return parser.parse_args(args)
 
 
