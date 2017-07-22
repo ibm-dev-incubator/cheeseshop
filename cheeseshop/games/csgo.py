@@ -75,10 +75,14 @@ class MapState(object):
 
     @property
     def team_1(self):
+        if self.team_t is None or self.team_ct is None:
+            return None
         return list(sorted((self.team_t, self.team_ct)))[0]
 
     @property
     def team_2(self):
+        if self.team_t is None or self.team_ct is None:
+            return None
         return list(sorted((self.team_t, self.team_ct)))[1]
 
     async def create_db_obj(self, conn, streamer):
