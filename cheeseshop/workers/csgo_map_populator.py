@@ -24,8 +24,8 @@ async def run(db_pool, streamer_uuid, stride):
     async with db_pool.acquire() as conn:
         streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
         map_state = csgo.MapState()
-        async with conn.transaction():
-            while True:
+        while True:
+            async with conn.transaction():
                 ret = await dbapi.CsGoGsiEvent.get_oldest_by_streamer_id(
                     conn,
                     streamer.id,
