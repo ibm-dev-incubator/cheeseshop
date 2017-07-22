@@ -70,16 +70,27 @@ class MapState(object):
             new_map_state.phase != 'gameover'):
             return True
         return (self.name != new_map_state.name or
-                self.team_ct != new_map_state.team_ct or
-                self.team_t != new_map_state.team_t)
+                set((self.team_t, self.team_ct)) !=
+                set((new_map_state.team_t, new_map_state.team_ct)))
 
     @property
     def team_1(self):
+        if self.team_t is None or self.team_ct is None:
+            return None
         return list(sorted((self.team_t, self.team_ct)))[0]
 
     @property
     def team_2(self):
+        if self.team_t is None or self.team_ct is None:
+            return None
         return list(sorted((self.team_t, self.team_ct)))[1]
+
+    async def create_db_obj(self, conn, streamer):
+        return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
+                                          streamer.id, self.name,
+                                          self.team_1,
+                                          self.team_2)
+
 
 
 class GsiSource(object):
@@ -129,7 +140,7 @@ class CsGoApi(gameapi.GameApi):
         map_state = MapState.from_gsi_event(gsi_data)
         map_id = gsi_source.map_id
         if gsi_source.map_state.is_new_map(map_state):
-            map_id = await self._create_mapid(conn, map_state, streamer)
+            await map_state.create_db_obj(conn, streamer)
         gsi_source.map_state = map_state
 
         event = await dbapi.CsGoGsiEvent.create(conn,
@@ -198,12 +209,6 @@ class CsGoApi(gameapi.GameApi):
         return {
             'maps': maps
         }
-
-    async def _create_mapid(self, conn, map_state, streamer):
-        return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
-                                          streamer.id, map_state.name,
-                                          map_state.team_1,
-                                          map_state.team_2)
 
     def _url_for_streamer(self, streamer):
         return (self.config.base_uri +
