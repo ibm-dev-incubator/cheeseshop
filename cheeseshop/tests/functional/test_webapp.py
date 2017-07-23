@@ -90,11 +90,11 @@ class TestCsGo(base.FunctionalTestCase):
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
         maps_resp_txt = await maps_resp.text()
-        return re.search('<li>(.*)</li>', maps_resp_txt)
+        return re.findall('<li>.*UUID: (.*)</li>', maps_resp_txt)
 
     async def test_streamer_map_change(self):
-        uuid = await self._create_source()
-        source_base_uri = self._get_source_base_uri(uuid)
+        src_uuid = await self._create_source()
+        source_base_uri = self._get_source_base_uri(src_uuid)
 
         # We shouldnt have any maps detected yet
         self.assertFalse(await self._get_maps())
@@ -111,25 +111,31 @@ class TestCsGo(base.FunctionalTestCase):
                 'name': 'map name'
             }
         }
-        resp = await self._send_gsi(uuid, gsi_data)
+        resp = await self._send_gsi(src_uuid, gsi_data)
         self.assertEqual(resp.status, 200)
 
         # We should have created a new map
         maps = await self._get_maps()
         self.assertTrue(maps)
-        self.assertEqual(maps.group(1),
-                         'team 1 vs team 2 on map name')
+        self.assertEqual(len(maps), 1)
 
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
 
         gsi_data['map']['phase'] = 'gameover'
-        resp = await self._send_gsi(uuid, gsi_data)
+        resp = await self._send_gsi(src_uuid, gsi_data)
         self.assertEqual(resp.status, 200)
 
         gsi_data['map']['phase'] = 'live'
-        resp = await self._send_gsi(uuid, gsi_data)
+        resp = await self._send_gsi(src_uuid, gsi_data)
         self.assertEqual(resp.status, 200)
+
+        map_uuids = await self._get_maps()
+        maps_base_uri = '/games/csgo/gsi/maps'
+        replay_uri = '%s/%s/replay' % (maps_base_uri, map_uuids[0])
+        replay_req = await self.client.get(replay_uri)
+        replay_events = await replay_req.json()
+        self.assertEqual(len(replay_events), 2)
 
     async def _create_source(self):
         resp = await self.client.get("/games/csgo/gsi/sources")

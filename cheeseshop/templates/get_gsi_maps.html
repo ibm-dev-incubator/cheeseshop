@@ -4,7 +4,7 @@
     <h2>Known maps</h2>
     <ul>
         {% for map in maps %}
-        <li>{{ map.team_1 }} vs {{ map.team_2 }} on {{ map.map_name }}</li>
+        <li>{{ map.team_1 }} vs {{ map.team_2 }} on {{ map.map_name }}. UUID: {{ map.uuid }}</li>
         {% endfor %}
     </ul>
 {% endblock %}

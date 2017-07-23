@@ -241,6 +241,25 @@ class CsGoGsiEvent(object):
         return events
 
     @staticmethod
+    async def get_by_map_uuid(conn, map_uuid):
+        events = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_gsi_events
+            INNER JOIN cs_go_event_map_releation
+                ON cs_go_event_map_releation.event_id = cs_go_gsi_events.id
+            INNER JOIN cs_go_map
+                ON cs_go_event_map_releation.map_id = cs_go_map.id
+            WHERE cs_go_map.uuid = $1
+        ''', map_uuid):
+            events.append(CsGoGsiEvent(
+                record['event_id'],
+                record['time'],
+                record['streamer_id'],
+                record['event']
+            ))
+        return events
+
+    @staticmethod
     def from_row(row):
         return CsGoGsiEvent(row['id'], row['time'], row['streamer_id'],
                             row['event'])
@@ -258,6 +277,7 @@ class CsGoMap(object):
         await conn.execute('''
             CREATE TABLE cs_go_map(
                 id serial PRIMARY KEY,
+                uuid text UNIQUE,
                 start_time timestamp,
                 streamer_id integer REFERENCES cs_go_streamer (id),
                 map_name text,
@@ -265,15 +285,21 @@ class CsGoMap(object):
                 team_2 text
             )
         ''')
+        await conn.execute('''
+            CREATE UNIQUE INDEX ON cs_go_map (uuid)
+        ''')
 
     @staticmethod
-    async def create(conn, start_time, streamer_id, map_name, team_1, team_2):
+    async def create(conn, uuid, start_time, streamer_id, map_name, team_1,
+                     team_2):
         row = await conn.fetchrow('''
-            INSERT INTO cs_go_map(start_time, streamer_id, map_name, team_1, team_2)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO cs_go_map(uuid, start_time, streamer_id, map_name,
+                                  team_1, team_2)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
-        ''', start_time, streamer_id, map_name, team_1, team_2)
-        return CsGoMap(row['id'], start_time, streamer_id, map_name, team_1, team_2)
+        ''', uuid, start_time, streamer_id, map_name, team_1, team_2)
+        return CsGoMap(row['id'], uuid, start_time, streamer_id, map_name,
+                       team_1, team_2)
 
     @staticmethod
     async def get_all(conn):
@@ -286,11 +312,14 @@ class CsGoMap(object):
 
     @staticmethod
     def from_row(row):
-        return CsGoMap(row['id'], row['start_time'], row['streamer_id'],
-                       row['map_name'], row['team_1'], row['team_2'])
+        return CsGoMap(row['id'], row['uuid'], row['start_time'],
+                       row['streamer_id'], row['map_name'], row['team_1'],
+                       row['team_2'])
 
-    def __init__(self, id_, start_time, streamer_id, map_name, team_1, team_2):
+    def __init__(self, id_, uuid, start_time, streamer_id, map_name, team_1,
+                 team_2):
         self.id = id_
+        self.uuid = uuid
         self.start_time = start_time
         self.streamer_id = streamer_id
         self.map_name = map_name
@@ -307,6 +336,14 @@ class CsGoEventMapRelation(object):
                 map_id integer REFERENCES cs_go_map (id)
             )
         ''')
+
+    @staticmethod
+    async def create(conn, event_id, map_id):
+        await conn.execute('''
+            INSERT INTO cs_go_event_map_releation (event_id, map_id)
+            VALUES ($1, $2)
+        ''', event_id, map_id)
+        return CsGoEventMapRelation(event_id, map_id)
 
     @staticmethod
     async def get_oldest(conn, streamer_id, limit=100, offset=0):
