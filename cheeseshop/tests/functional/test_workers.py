@@ -62,9 +62,6 @@ class TestCsGoMapPopulator(base.FunctionalTestCase):
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
         maps_resp_txt = await maps_resp.text()
-        self.assertEqual(maps_resp_txt.count(
-            '<li>team 1 vs team 2 on map name</li>'
-        ), 1)
-        self.assertEqual(maps_resp_txt.count(
-            '<li>team 3 vs team 4 on map 2 name</li>'
-        ), 1)
+        maps_re = '<li>.*UUID: (.*)</li>'
+        maps_srch = re.findall(maps_re, maps_resp_txt)
+        self.assertEqual(len(maps_srch), 2)

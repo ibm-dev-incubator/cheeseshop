@@ -36,7 +36,7 @@ async def run(db_pool, streamer_uuid, stride):
                 print('Processing %d events' % len(ret))
                 for event in ret:
                     await map_state.update(json.loads(event.event), conn,
-                                           streamer)
+                                           streamer, event.id)
                 if len(ret) < stride: 
                     return
 

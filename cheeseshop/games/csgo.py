@@ -54,8 +54,10 @@ class MapState(object):
         self.team_ct = None
         self.team_t = None
         self._db_created = False
+        self.uuid = None
+        self.map = None
 
-    async def update(self, event, conn, streamer):
+    async def update(self, event, conn, streamer, event_id):
         map_ = event.get('map', {})
         phase = map_.get('phase')
         name = map_.get('name')
@@ -64,6 +66,8 @@ class MapState(object):
 
         if self.is_new_map(phase, name, team_ct, team_t):
             self._db_created = False
+            self.uuid = None
+            self.map = None
 
         self.phase = phase
         self.name = name
@@ -71,6 +75,10 @@ class MapState(object):
         self.team_t = team_t
 
         await self._ensure_db(conn, streamer)
+
+        if self.map is not None:
+            await dbapi.CsGoEventMapRelation.create(conn, event_id,
+                                                    self.map.id)
 
     async def _ensure_db(self, conn, streamer):
         if self._db_created is False:
@@ -101,11 +109,12 @@ class MapState(object):
         return list(sorted((self.team_t, self.team_ct)))[1]
 
     async def create_db_obj(self, conn, streamer):
-        return await dbapi.CsGoMap.create(conn, datetime.datetime.now(),
-                                          streamer.id, self.name,
-                                          self.team_1,
-                                          self.team_2)
-
+        self.uuid = str(uuid.uuid4())
+        self.map = await dbapi.CsGoMap.create(
+            conn, self.uuid, datetime.datetime.now(), streamer.id, self.name,
+            self.team_1, self.team_2
+        )
+        return self.map
 
 
 class GsiSource(object):
@@ -133,6 +142,8 @@ class CsGoApi(gameapi.GameApi):
                         self._handle_post_gsi_source)
         router.add_get('/games/csgo/gsi/maps',
                        self._handle_gsi_maps)
+        router.add_get('/games/csgo/gsi/maps/{map_uuid}/replay',
+                       self._handle_gsi_map_replay)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
                        self._handle_gsi_deathlog)
 
@@ -152,12 +163,12 @@ class CsGoApi(gameapi.GameApi):
 
         gsi_data = await request.json()
         gsi_source = self._gsi_sources[streamer_uuid]
-        await gsi_source.map_state.update(gsi_data, conn, streamer)
-
         event = await dbapi.CsGoGsiEvent.create(conn,
                                                 datetime.datetime.now(),
                                                 streamer.id,
                                                 json.dumps(gsi_data))
+        await gsi_source.map_state.update(gsi_data, conn, streamer,
+                                          event.id)
 
         for player in gsi_source.players:
             await player.handle_event(gsi_data)
@@ -178,6 +189,19 @@ class CsGoApi(gameapi.GameApi):
         streamer_uuid = request.match_info.get('streamer_uuid')
         streamer = await dbapi.CsGoStreamer.get_by_uuid(conn, streamer_uuid)
         events = await dbapi.CsGoGsiEvent.get_by_streamer_id(conn, streamer.id)
+        dict_events = []
+        for event in events:
+            time_str = str(event.time)
+            dict_events.append({
+                'time': time_str,
+                'event': json.loads(event.event)
+            })
+        return web.json_response(dict_events)
+
+    @db.with_transaction
+    async def _handle_gsi_map_replay(self, conn, request):
+        map_uuid = request.match_info.get('map_uuid')
+        events = await dbapi.CsGoGsiEvent.get_by_map_uuid(conn, map_uuid)
         dict_events = []
         for event in events:
             time_str = str(event.time)
