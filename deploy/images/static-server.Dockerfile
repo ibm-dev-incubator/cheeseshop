@@ -1,5 +1,7 @@
 FROM nginx:1.13-alpine
 
+RUN apk add --no-cache bash
+
 COPY ./cheeseshop/static /cheeseshop-static
 COPY ./conf/static-nginx.conf /etc/nginx/conf.d/cheeseshop-static.template
 
