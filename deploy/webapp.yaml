@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: cheeseshop-static
-        image: container-registry.dev.ibmesports.com/cheeseshop-static:latest
+        image: container-registry.dev.ibmesports.com/cheeseshop-static:$IMAGE_TAG
         ports:
         - containerPort: 80
 ---
@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
       - name: cheeseshop-webapp
-        image: container-registry.dev.ibmesports.com/cheeseshop-webapp:latest
+        image: container-registry.dev.ibmesports.com/cheeseshop-webapp:$IMAGE_TAG
         env:
         - name: SQL_HOST
           value: sl-us-south-1-portal.1.dblayer.com
