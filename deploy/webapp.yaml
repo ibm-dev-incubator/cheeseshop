@@ -57,9 +57,15 @@ spec:
         image: container-registry.dev.ibmesports.com/cheeseshop-webapp:$IMAGE_TAG
         env:
         - name: SQL_HOST
-          value: sl-us-south-1-portal.1.dblayer.com
+          valueFrom:
+            secretKeyRef:
+             name: cheeseshop
+             key: sql-host
         - name: SQL_PORT
-          value: "19343"
+          valueFrom:
+            secretKeyRef:
+             name: cheeseshop
+             key: sql-port
         - name: SQL_USER
           value: admin
         - name: SQL_DATABASE
