@@ -4,10 +4,9 @@ WORKDIR /cheeseshop
 
 ADD . /cheeseshop
 
-RUN ls -la /cheeseshop
-RUN apt-get update && apt-get install git
+RUN apt-get update && apt-get install git gettext-base
 RUN pip install .
 
 EXPOSE 9980
 
-CMD ["cheeseshop-webapp", "-p", "9980"]
+CMD ["/bin/bash", "-c", "envsubst < /cheeseshop/conf/config_template.yaml > /cheeseshop-config.yaml && cheeseshop-webapp /cheeseshop-config.yaml"]

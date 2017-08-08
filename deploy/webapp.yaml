@@ -1,61 +1,73 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: static-service
+  name: cheeseshop-static-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
   - port: 80
     protocol: TCP
-    nodePort: 30001
-    name: static-server
+    name: cheeseshop-static
   selector:
-    app: static-server
+    app: cheeseshop-static
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: webapp-service
+  name: cheeseshop-webapp-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
-  - port: 9970
+  - port: 8081
     protocol: TCP
-    nodePort: 30000
-    name: webapp
+    name: cheeseshop-webapp
   selector:
-    app: webapp
+    app: cheeseshop-webapp
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: static-server
+  name: cheeseshop-static
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: static-server
+        app: cheeseshop-static
     spec:
       containers:
-      - name: static-server
-        image: registry.ng.bluemix.net/greghaynes/cheeseshop-static:latest
+      - name: cheeseshop-static
+        image: container-registry.dev.ibmesports.com/cheeseshop-static:latest
         ports:
         - containerPort: 80
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: webapp
+  name: cheeseshop-webapp
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: webapp
+        app: cheeseshop-webapp
     spec:
       containers:
-      - name: webapp
-        image: registry.ng.bluemix.net/greghaynes/cheeseshop:latest
+      - name: cheeseshop-webapp
+        image: container-registry.dev.ibmesports.com/cheeseshop-webapp:latest
+        env:
+        - name: SQL_HOST
+          value: sl-us-south-1-portal.1.dblayer.com
+        - name: SQL_PORT
+          value: "19343"
+        - name: SQL_USER
+          value: admin
+        - name: SQL_DATABASE
+          value: compose
+        - name: SQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+             name: cheeseshop
+             key: sql-password
         ports:
-        - containerPort: 9970
+        - containerPort: 8081
