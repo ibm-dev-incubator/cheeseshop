@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cheeseshop-static-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    protocol: TCP
+    name: cheeseshop-static
+  selector:
+    app: cheeseshop-static
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cheeseshop-webapp-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8081
+    protocol: TCP
+    name: cheeseshop-webapp
+  selector:
+    app: cheeseshop-webapp
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cheeseshop-static
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cheeseshop-static
+    spec:
+      containers:
+      - name: cheeseshop-static
+        image: container-registry.dev.ibmesports.com/cheeseshop-static:$IMAGE_TAG
+        ports:
+        - containerPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cheeseshop-webapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cheeseshop-webapp
+    spec:
+      containers:
+      - name: cheeseshop-webapp
+        image: container-registry.dev.ibmesports.com/cheeseshop-webapp:$IMAGE_TAG
+        env:
+        - name: SQL_HOST
+          value: sl-us-south-1-portal.1.dblayer.com
+        - name: SQL_PORT
+          value: "19343"
+        - name: SQL_USER
+          value: admin
+        - name: SQL_DATABASE
+          value: compose
+        - name: SQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+             name: cheeseshop
+             key: sql-password
+        ports:
+        - containerPort: 8081
