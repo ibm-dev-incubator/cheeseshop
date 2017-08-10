@@ -87,7 +87,7 @@ metadata:
   name: cheeseshop-ingress
 spec:
   rules:
-  - host: ibmesports-prod.us-south.containers.mybluemix.net
+  - host: ibmesports.com
     http:
       paths:
       - path: /static
