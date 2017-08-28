@@ -3,9 +3,8 @@ kind: Service
 metadata:
   name: cheeseshop-static-service
 spec:
-  type: LoadBalancer
   ports:
-  - port: 80
+  - port: 8082
     protocol: TCP
     name: cheeseshop-static
   selector:
@@ -16,7 +15,6 @@ kind: Service
 metadata:
   name: cheeseshop-webapp-service
 spec:
-  type: LoadBalancer
   ports:
   - port: 8081
     protocol: TCP
@@ -38,8 +36,12 @@ spec:
       containers:
       - name: cheeseshop-static
         image: container-registry.dev.ibmesports.com/cheeseshop-static:$IMAGE_TAG
+        imagePullPolicy: Always
+        env:
+        - name: NGINX_LISTEN
+          value: "*:8082"
         ports:
-        - containerPort: 80
+        - containerPort: 8082
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -55,6 +57,7 @@ spec:
       containers:
       - name: cheeseshop-webapp
         image: container-registry.dev.ibmesports.com/cheeseshop-webapp:$IMAGE_TAG
+        imagePullPolicy: Always
         env:
         - name: SQL_HOST
           valueFrom:
@@ -77,3 +80,21 @@ spec:
              key: sql-password
         ports:
         - containerPort: 8081
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cheeseshop-ingress
+spec:
+  rules:
+  - host: ibmesports.com
+    http:
+      paths:
+      - path: /static
+        backend:
+          serviceName: cheeseshop-static-service
+          servicePort: 8082
+      - path: /
+        backend:
+          serviceName: cheeseshop-webapp-service
+          servicePort: 8081

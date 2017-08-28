@@ -2,7 +2,14 @@ FROM nginx:1.13-alpine
 
 RUN apk add --no-cache bash
 
-COPY ./cheeseshop/static /cheeseshop-static
-COPY ./conf/static-nginx.conf /etc/nginx/conf.d/cheeseshop-static.template
+COPY ./conf/nginx.conf /etc/nginx/nginx.conf
+USER nginx
+COPY ./conf/static-nginx.conf /nginx-sites/cheeseshop-static.template
+COPY ./cheeseshop/static /cheeseshop-static/static
+USER root
+RUN mkdir /var/run/nginx
+RUN chown nginx:root /nginx-sites
+RUN chown nginx:nginx /var/run/nginx
 
-CMD ["/bin/bash", "-c", "envsubst < /etc/nginx/conf.d/cheeseshop-static.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+USER nginx
+CMD ["/bin/bash", "-c", "envsubst < /nginx-sites/cheeseshop-static.template > /nginx-sites/cheeseshop-static.conf && nginx"]
