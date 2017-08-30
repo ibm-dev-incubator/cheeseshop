@@ -10,7 +10,7 @@ Install cheeseshop via pip
 
 .. code:: shell
 
-     git clone https;//github.com/ibm-dev-incubator/cheeseshop
+     git clone https://github.com/ibm-dev-incubator/cheeseshop
      cd cheeseshop
      pip install .
 
