@@ -83,8 +83,10 @@ def main():
     if args.download:
         match_url = get_match(team, results_url)
         for match in match_url[:replay_count]:
-            if dupe_check_replays(match):
-                print(match + " has already been downloaded, skipping.")
+            match_filename = match.split('/')[-1]
+            if dupe_check_replays(match_filename):
+                print(match_filename +
+                      " has already been downloaded, skipping.")
             else:
                 demo_url = get_demo_link(format_url(match))
                 if demo_url:
