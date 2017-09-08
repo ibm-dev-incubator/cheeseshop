@@ -1,0 +1,4 @@
+hltv_scraper.py|31 col 5 error| local variable 'local_file_name_in_dir' is assigned to but never used [F841] [python/flake8]
+hltv_scraper.py|33 col 27 error| undefined name 'local_filename' [F821] [python/flake8]
+hltv_scraper.py|37 col 23 error| undefined name 'local_filename_in_dir' [F821] [python/flake8]
+hltv_scraper.py|39 col 12 error| undefined name 'local_filename' [F821] [python/flake8]
