@@ -6,7 +6,7 @@ ADD . /cheeseshop
 
 RUN make prep-dev
 
-RUN apt-get update && apt-get install -y git gettext-base
+RUN apt-get update && apt-get install -y git gettext-base unrar
 RUN pip install .
 
 EXPOSE 9980
