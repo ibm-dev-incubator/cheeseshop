@@ -15,3 +15,8 @@ def get_replay(sha1sum):
     replay_path = os.path.join(replay_dir, sha1sum + ".SC2Replay")
     return replay_path
 
+
+def truthy(val):
+    if type(val) == str:
+        return val in ('True', 'true', 't', 'yes')
+    return bool(val)
