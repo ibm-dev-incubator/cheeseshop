@@ -20,32 +20,27 @@
     <script>
       $(function () {
         var all_players_match_stats = {};
-        var connection = new WebSocket('{{ gsi_websocket_url }}');
+        var connection = new WebSocket('ws://' + window.location.host + '{{ gsi_websocket_url }}');
         connection.onopen = function(){
              /*Send a small message to the console once the connection is established */
-             console.log('Connection open!');
+             console.log('WebSocket connection open!');
         }
         connection.onmessage = function(msg){
-          console.log(msg);
           msg = JSON.parse(msg.data);
-          console.log(Object.keys(msg.allplayers));
-          //$("#deathlog").html("");
           Object.keys(msg.allplayers).forEach ( function (steam_id, index) {
-            //$('#deathlog').append($('<li>').text("Player: " + steam_id+ " // Kills: " + msg.allplayers[steam_id]['match_stats']['kills']));
+
             var temp = all_players_match_stats[steam_id];
             if (temp != undefined) {
               if (temp['deaths'] !=  msg.allplayers[steam_id]['match_stats']['deaths']) {
                 $('#deathlog').append($('<li>').text("Player: " + steam_id + " died"));
               }
             }
-            all_players_match_stats[steam_id] = { 
+            all_players_match_stats[steam_id] = {
                "kills": msg.allplayers[steam_id]['match_stats']['kills'],
                "deaths": msg.allplayers[steam_id]['match_stats']['deaths']
             }
             window.scrollTo(0, document.body.scrollHeight);
 
-
-            console.log(msg.allplayers[steam_id]['match_stats']);
           });
         };
       });

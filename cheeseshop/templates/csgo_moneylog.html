@@ -18,30 +18,34 @@
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
+    var mymsg = {};
+    var all_players_match_stats = {};
       $(function () {
-        var all_players_match_stats = {};
-        var connection = new WebSocket('{{ gsi_websocket_url }}');
+        var connection = new WebSocket('ws://' + window.location.host + '{{ gsi_websocket_url }}');
         connection.onopen = function(){
              /*Send a small message to the console once the connection is established */
              console.log('Connection open!');
         }
         connection.onmessage = function(msg){
-          console.log(msg);
           msg = JSON.parse(msg.data);
-          console.log(Object.keys(msg.allplayers));
+          mymsg = msg;
           Object.keys(msg.allplayers).forEach ( function (steam_id, index) {
+            //console.log(steam_id);
             var temp = all_players_match_stats[steam_id];
+            var name = msg.allplayers[steam_id].name;
+            var clan = msg.allplayers[steam_id].clan;
+            var team = msg.allplayers[steam_id].team;
             if (temp != undefined) {
-              if (temp['money'] !=  msg.allplayers[steam_id]['match_stats']['money']) {
-                $('#moneylog').append($('<li>').text("Player: " + steam_id + " has $" + money));
+              if (temp['money'] !=  msg.allplayers[steam_id]['state']['money']) {
+                $('#moneylog').append($('<li>').
+                text("Player: " + clan + "." + name + "(" + team + ")" + " had $" + temp['money'] + " and now has $" + msg.allplayers[steam_id]['state']['money'] + "  difference: " + (msg.allplayers[steam_id]['state']['money'] - temp['money'])));
               }
             }
             all_players_match_stats[steam_id] = {
-               "money": msg.allplayers[steam_id]['match_stats']['money']
+               "money": msg.allplayers[steam_id]['state']['money']
             }
             window.scrollTo(0, document.body.scrollHeight);
 
-            console.log(msg.allplayers[steam_id]['match_stats']);
           });
         };
       });
