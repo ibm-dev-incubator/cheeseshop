@@ -67,3 +67,4 @@ Workers are installed as executables. They are all named 'cs-worker-something' a
 
 
 
+test
