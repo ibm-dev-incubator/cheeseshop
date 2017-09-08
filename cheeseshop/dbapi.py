@@ -271,6 +271,31 @@ class CsGoGsiEvent(object):
         self.event = event
 
 
+class CsGoHltvEventType(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_hltv_event_types(
+                id serial PRIMARY KEY,
+                name text UNIQUE NOT NULL
+            )
+        ''')
+
+
+class CsGoHltvEvent(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_hltv_events(
+                id serial PRIMARY KEY,
+                time timestamp,
+                replay_id integer REFERENCES replays (id),
+                type integer REFERENCES cs_go_hltv_event_types,
+                event json
+            )
+        ''')
+
+
 class CsGoMap(object):
     @staticmethod
     async def create_schema(conn):
@@ -376,6 +401,8 @@ class CsGoEventMapRelation(object):
 async def create_schema(conn):
     await Game.create_schema(conn)
     await Replay.create_schema(conn)
+    await CsGoHltvEventType.create_schema(conn)
+    await CsGoHltvEvent.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
     await CsGoMap.create_schema(conn)
