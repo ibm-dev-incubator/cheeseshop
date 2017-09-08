@@ -2,6 +2,7 @@ from lxml import html
 import requests
 import argparse
 import os
+import rarfile
 
 
 def get_match(team_id, url):
@@ -26,6 +27,7 @@ def get_demo_link(url):
 
 
 def download_replay(demo_url, match_url):
+    """ Download replays to ../replays so that we can stage for unraring """
     local_dir = "../replays/"
     local_filename = (match_url.split('/')[-1] + ".rar")
     local_filename_location = (local_dir + local_filename)
@@ -43,12 +45,30 @@ def format_url(match, base_url="https://www.hltv.org"):
 
 
 def dupe_check_replays(filename):
+    """ Check if file exists so that we can skip download if needed. """
     replay_file = filename + ".rar"
     if os.path.isfile("../replays/" + replay_file):
         file_exists = True
     else:
         file_exists = False
     return file_exists
+
+
+def unrar_replays():
+    for rar in os.listdir("../replays/"):
+        if rar.endswith(".rar"):
+            filepath = ("../replays/" + rar)
+            opened_rar = rarfile.RarFile(filepath)
+            list_of_files = []
+            for f in opened_rar.infolist():
+                if os.path.isfile("../replays/" + f.filename):
+                    print(f.filename + " already extracted, skipping.")
+                else:
+                    list_of_files.append(f.filename)
+            for dem in list_of_files:
+                print("Extracting " + dem)
+                opened_rar.extract(member=dem, path="../replays/")
+    return
 
 
 def main():
@@ -60,12 +80,15 @@ def main():
                         action='store_true', help='Downloads locally')
     parser.add_argument('--count', type=int, default=1,
                         help='Number of replays to download.')
+    parser.add_argument('--unrar', action='store_true', help='Unrar Replays.')
     args = parser.parse_args()
 
-    replay_count = args.count + 1
+    replay_count = args.count
     team = args.team
     results_url = "https://www.hltv.org/results?team="
     base_url = "https://www.hltv.org"
+#    rarfile.UNRAR_TOOL = "/usr/bin/unrar"
+#    rarfile.PATH_SEP = '/'
 
     if args.list:
         match_links = get_match(team, results_url)
@@ -90,5 +113,9 @@ def main():
             else:
                 demo_url = get_demo_link(format_url(match))
                 if demo_url:
+                    print("Downloading " + match_filename + " ...")
                     download_replay((base_url + demo_url),
                                     format_url(match))
+
+    if args.unrar:
+        unrar_replays()
