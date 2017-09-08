@@ -20,29 +20,44 @@ def getDemoLink(url):
     return demo_links[0] if demo_links else None
 
 
-# List Matches for the team.
-def listMatches(team):
-    pass
+def downloadReplay(demo_url, match_url):
+    local_filename = match_url.split('/')[-1]
+    r = requests.get(demo_url)
+    print(r)
+    print(local_filename)
+
+
+def formatURL(match, base_url=""):
+    if not base_url:
+        base_url = "https://www.hltv.org"
+    formattedURL = base_url + match
+    return formattedURL
 
 
 def main():
     parser = argparse.ArgumentParser(description='hltv scraper')
     parser.add_argument('--team', type=int, help='Enter in team UUID.')
     parser.add_argument('--list', action='store_true', help='Lists matches.')
-    parser.add_argument('--download', action='store_true', help='Lists DL.')
+    parser.add_argument('--verbose', action='store_true', help='Lists DL.')
+    parser.add_argument('--download',
+                        action='store_true', help='Downloads locally')
     args = parser.parse_args()
 
     team = args.team
+    results_url = "https://www.hltv.org/results?team="
+
     if args.list:
-        match_links = getMatch(str(team), "https://www.hltv.org/results?team=")
+        match_links = getMatch(str(team), results_url)
         for match in match_links[:10]:
             print(match)
 
-    if args.download:
-        match_links = getMatch(str(team), "https://www.hltv.org/results?team=")
+    if args.verbose:
+        match_links = getMatch(str(team), results_url)
         for match in match_links[:10]:
-            fixed_match_url = "https://www.hltv.org" + match
-            demo_link_results = getDemoLink(fixed_match_url)
+            demo_link_results = getDemoLink(formatURL(match))
             if str(demo_link_results) != "None":
                 print(match.split('/')[-1])
                 print("https://www.hltv.org" + str(demo_link_results))
+
+#    if args.download:
+#        downloadReplay( )
