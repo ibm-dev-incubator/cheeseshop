@@ -7,3 +7,7 @@ __pycache__
 *.dem
 AUTHORS
 ChangeLog
+protobufs/
+*.c
+*.h
+*.so
