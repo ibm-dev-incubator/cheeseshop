@@ -144,6 +144,8 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_gsi_maps)
         router.add_get('/games/csgo/gsi/maps/{map_uuid}/replay',
                        self._handle_gsi_map_replay)
+        router.add_get('/games/csgo/gsi/maps/{map_uuid}/position_heatmap',
+                       self._handle_gsi_map_heatmap)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
                        self._handle_gsi_deathlog)
 
@@ -210,6 +212,14 @@ class CsGoApi(gameapi.GameApi):
                 'event': json.loads(event.event)
             })
         return web.json_response(dict_events)
+
+    @aiohttp_jinja2.template('csgo_position_heatmap.html')
+    async def _handle_gsi_map_heatmap(self, request):
+        map_uuid = request.match_info.get('map_uuid')
+        ws_url = '/games/csgo/gsi/maps/%s/replay' % map_uuid
+        return {
+            'gsi_websocket_url': ws_url
+        }
 
     @aiohttp_jinja2.template('get_gsi.html')
     @db.with_transaction

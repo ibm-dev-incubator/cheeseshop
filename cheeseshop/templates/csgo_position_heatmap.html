@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}CS:GO Death Log{% endblock %}
+{% block head %}
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/static/js/simpleheat.js"></script>
+    <script src="/static/js/de_heatmp.js"> </script>
+{% endblock %}
+{% block content %}
+    <div id="container">
+      <canvas id="canvas" width="1024" height="1024"></canvas>
+    </div>
+    <script type="text/javascript">
+    // Create heatmap, passing map name and array of csgo coordinates
+    var points_array = [[-252, 668, 94]];
+    //var points_array = [[-3163.21, 275.99, 0.03]];
+    var options = { point_weight: 18,
+                    asset_prefix: "/static/"
+                  }
+    var heatmap = new de_heatmp( "canvas", "de_cbble", points_array, options );
+    // Draw heatmap
+    heatmap.draw();
+    </script>
+{% endblock %}
+
