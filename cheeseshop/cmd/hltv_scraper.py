@@ -112,6 +112,9 @@ def main():
                 match_meta = [match.split('/')[-1],
                               get_match_date(format_url(match)),
                               "{}{}".format(base_url, demo_link_results)]
+                match_meta = [get_match_date(format_url(match)),
+                              "{}{}".format(base_url, demo_link_results),
+                              match.split('/')[-1]]
                 print(match_meta)
 
     if args.download:
