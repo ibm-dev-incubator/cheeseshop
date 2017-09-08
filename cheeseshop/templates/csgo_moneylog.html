@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CS:GO Death Log{% endblock %}
+{% block title %}CS:GO Money Log{% endblock %}
 {% block head %}
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -7,37 +7,42 @@
   form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
   form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
   form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-  #deathlog { list-style-type: none; margin: 0; padding: 0; }
-  #deathlog li { padding: 5px 10px; }
-  #deathlog li:nth-child(odd) { background: #eee; }
-  #deathlog { margin-bottom: 40px }
+  #moneylog { list-style-type: none; margin: 0; padding: 0; }
+  #moneylog li { padding: 5px 10px; }
+  #moneylog li:nth-child(odd) { background: #eee; }
+  #moneylog { margin-bottom: 40px }
 </style>
 {% endblock %}
 {% block content %}
-    <ul id="deathlog"></ul>
+    <ul id="moneylog"></ul>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
+    var mymsg = {};
+    var all_players_match_stats = {};
       $(function () {
-        var all_players_match_stats = {};
         var connection = new WebSocket('ws://' + window.location.host + '{{ gsi_websocket_url }}');
         connection.onopen = function(){
              /*Send a small message to the console once the connection is established */
-             console.log('WebSocket connection open!');
+             console.log('Connection open!');
         }
         connection.onmessage = function(msg){
           msg = JSON.parse(msg.data);
+          mymsg = msg;
           Object.keys(msg.allplayers).forEach ( function (steam_id, index) {
-
+            //console.log(steam_id);
             var temp = all_players_match_stats[steam_id];
+            var name = msg.allplayers[steam_id].name;
+            var clan = msg.allplayers[steam_id].clan;
+            var team = msg.allplayers[steam_id].team;
             if (temp != undefined) {
-              if (temp['deaths'] !=  msg.allplayers[steam_id]['match_stats']['deaths']) {
-                $('#deathlog').append($('<li>').text("Player: " + steam_id + " died"));
+              if (temp['money'] !=  msg.allplayers[steam_id]['state']['money']) {
+                $('#moneylog').append($('<li>').
+                text("Player: " + clan + "." + name + "(" + team + ")" + " had $" + temp['money'] + " and now has $" + msg.allplayers[steam_id]['state']['money'] + "  difference: " + (msg.allplayers[steam_id]['state']['money'] - temp['money'])));
               }
             }
             all_players_match_stats[steam_id] = {
-               "kills": msg.allplayers[steam_id]['match_stats']['kills'],
-               "deaths": msg.allplayers[steam_id]['match_stats']['deaths']
+               "money": msg.allplayers[steam_id]['state']['money']
             }
             window.scrollTo(0, document.body.scrollHeight);
 
@@ -46,4 +51,3 @@
       });
     </script>
 {% endblock %}
-
