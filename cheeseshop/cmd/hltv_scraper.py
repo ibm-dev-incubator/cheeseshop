@@ -1,5 +1,6 @@
 from lxml import html
 import requests
+import argparse
 
 
 # Get matches based on the URL + Team ID. This returns match result links.
@@ -19,15 +20,29 @@ def getDemoLink(url):
     return demo_links[0] if demo_links else None
 
 
-teams = {"g2": 5995, "fnatic": 4991, "cloud9": 5752, "mousesports": 4494,
-         "gambit": 6651, "misfits": 7557, "envyus": 5991, "heroic": 7175,
-         "immortals": 7010}
+# List Matches for the team.
+def listMatches(team):
+    pass
 
-for teams, uuid in teams.items():
-    match_links = getMatch(str(uuid), "https://www.hltv.org/results?team=")
-    print("Replays for " + teams + ": ")
-    for match in match_links[:10]:
-        fixed_match_url = "https://www.hltv.org" + match
-        demo_link_results = getDemoLink(fixed_match_url)
-        if str(demo_link_results) != "None":
-            print("https://www.hltv.org" + str(demo_link_results))
+
+def main():
+    parser = argparse.ArgumentParser(description='hltv scraper')
+    parser.add_argument('--team', type=int, help='Enter in team UUID.')
+    parser.add_argument('--list', action='store_true', help='Lists matches.')
+    parser.add_argument('--download', action='store_true', help='Lists DL.')
+    args = parser.parse_args()
+
+    team = args.team
+    if args.list:
+        match_links = getMatch(str(team), "https://www.hltv.org/results?team=")
+        for match in match_links[:10]:
+            print(match)
+
+    if args.download:
+        match_links = getMatch(str(team), "https://www.hltv.org/results?team=")
+        for match in match_links[:10]:
+            fixed_match_url = "https://www.hltv.org" + match
+            demo_link_results = getDemoLink(fixed_match_url)
+            if str(demo_link_results) != "None":
+                print(match.split('/')[-1])
+                print("https://www.hltv.org" + str(demo_link_results))
