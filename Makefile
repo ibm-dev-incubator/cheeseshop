@@ -18,7 +18,7 @@ upload-images: set-rev
 
 .PHONY: deploy
 deploy: set-rev
-	IMAGE_TAG=$$(cat $(REV_FILE)) envsubst < deploy/webapp.yaml | kubectl create -f -
+	IMAGE_TAG=$$(cat $(REV_FILE)) envsubst < deploy/webapp.yaml | kubectl apply -f -
 
 delete-deployments:
 	kubectl delete deployment cheeseshop-static
