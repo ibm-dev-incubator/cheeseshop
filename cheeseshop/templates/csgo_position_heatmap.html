@@ -10,15 +10,32 @@
       <canvas id="canvas" width="1024" height="1024"></canvas>
     </div>
     <script type="text/javascript">
-    // Create heatmap, passing map name and array of csgo coordinates
-    var points_array = [[-252, 668, 94]];
-    //var points_array = [[-3163.21, 275.99, 0.03]];
-    var options = { point_weight: 18,
-                    asset_prefix: "/static/"
-                  }
-    var heatmap = new de_heatmp( "canvas", "de_cbble", points_array, options );
-    // Draw heatmap
-    heatmap.draw();
+    var heatmp_options = { point_weight: 1,
+                           asset_prefix: "/static/" }
+
+    var points_array = [];
+    var derp = {};
+    $.getJSON("{{ gsi_websocket_url }}", function(data) {
+      derp = data;
+      data.forEach(function(gamestate_event, index) {
+        if ("allplayers" in gamestate_event.event){
+          Object.keys(gamestate_event.event.allplayers).forEach(function(player_id, index) {
+            // get position of player (in csgo coordinates) - append to array
+            let position = gamestate_event.event.allplayers[player_id]
+              .position.split(",")
+              .map(parseFloat);
+
+            points_array.push(position);
+          });
+        }
+      });
+
+      // Create heatmap, passing map name and array of csgo coordinates
+      var heatmap = new de_heatmp( "canvas", "de_cbble", points_array, heatmp_options );
+      // Draw heatmap
+      heatmap.draw();
+    });
+
     </script>
 {% endblock %}
 
