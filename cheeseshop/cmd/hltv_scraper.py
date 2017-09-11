@@ -109,9 +109,10 @@ def main():
         for match in match_links[:replay_count]:
             demo_link_results = get_demo_link(format_url(match))
             if demo_link_results:
-                print(match.split('/')[-1])
-                print(get_match_date(format_url(match)))
-                print("{}{}".format(base_url, demo_link_results))
+                match_meta = [match.split('/')[-1],
+                              get_match_date(format_url(match)),
+                              "{}{}".format(base_url, demo_link_results)]
+                print(match_meta)
 
     if args.download:
         match_url = get_match(team, results_url)
