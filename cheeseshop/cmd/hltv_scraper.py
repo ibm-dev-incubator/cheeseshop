@@ -3,6 +3,7 @@ import requests
 import argparse
 import os
 import rarfile
+import datetime
 
 
 def get_match(team_id, url):
@@ -54,18 +55,28 @@ def dupe_check_replays(filename):
     return file_exists
 
 
-def unrar_replays():
+def get_match_date(url):
+    match_page = requests.get(url)
+    match_tree = html.fromstring(match_page.content)
+    match_date = match_tree.xpath('//div[@class="date"]/@data-unix')
+    match_timestamp = datetime.datetime.fromtimestamp(
+        int(match_date[0]) / 1000.0).strftime('%Y-%m-%d')
+    return match_timestamp
+
+
+def extract_replays():
     for rar in os.listdir("../replays/"):
         if rar.endswith(".rar"):
             filepath = "{}{}".format("../replays/", rar)
             opened_rar = rarfile.RarFile(filepath)
             list_of_files = []
-            for f in opened_rar.infolist():
-                if os.path.isfile("{}{}".format("../replays/", f.filename)):
-                    print("{}{}".format(f.filename,
+            for replay_file in opened_rar.infolist():
+                if os.path.isfile("{}{}".format("../replays/",
+                                                replay_file.filename)):
+                    print("{}{}".format(replay_file.filename,
                                         " already extracted, skipping."))
                 else:
-                    list_of_files.append(f.filename)
+                    list_of_files.append(replay_file.filename)
             for dem in list_of_files:
                 print("{}{}".format("Extracting ", dem))
                 opened_rar.extract(member=dem, path="../replays/")
@@ -74,13 +85,18 @@ def unrar_replays():
 
 def main():
     parser = argparse.ArgumentParser(description='hltv scraper')
-    parser.add_argument('--team', help='Enter in team UUID.')
-    parser.add_argument('--list', action='store_true', help='Lists matches.')
+    parser.add_argument('--team', required=True,
+                        help='Enter in team UUID.')
+    parser.add_argument('--list', action='store_true',
+                        help='Lists matches.')
     parser.add_argument('--download',
                         action='store_true', help='Downloads locally')
     parser.add_argument('--count', type=int, default=1,
                         help='Number of replays to download.')
-    parser.add_argument('--unrar', action='store_true', help='Unrar Replays.')
+    parser.add_argument('--extract', action='store_true',
+                        help='Extracts Replays.')
+    parser.add_argument('--upload', action='store_true',
+                        help="Uploads replay files.")
     args = parser.parse_args()
 
     replay_count = args.count
@@ -94,6 +110,7 @@ def main():
             demo_link_results = get_demo_link(format_url(match))
             if demo_link_results:
                 print(match.split('/')[-1])
+                print(get_match_date(format_url(match)))
                 print("{}{}".format(base_url, demo_link_results))
 
     if args.download:
@@ -113,5 +130,5 @@ def main():
                     download_replay(("{}{}".format(base_url, demo_url)),
                                     format_url(match))
 
-    if args.unrar:
-        unrar_replays()
+    if args.extract:
+        extract_replays()
