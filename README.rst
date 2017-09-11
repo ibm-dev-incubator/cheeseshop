@@ -2,6 +2,29 @@
 cheeseshop
 ==========
 
+Requirements
+------------
+
+- Python 3.5 or 3.6
+- postgresql (installed locally or running in a container)
+
+Ensure the cheeseshop user and db are present
+
+.. code:: shell
+
+    sudo -u postgres createuser cheeseshop
+    sudo -u postgres createdb cheeseshop
+
+
+Ensure the cheeseshop postgres user has the correct password
+
+.. code:: shell
+
+    sudo -i -u cheeseshop
+    psql
+    postgres=# ALTER USER cheeseshop WITH PASSWORD 'cheeseshop';
+
+
 Getting Started
 ---------------
 
