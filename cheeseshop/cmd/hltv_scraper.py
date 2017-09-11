@@ -98,6 +98,8 @@ def main():
 
     if args.download:
         match_url = get_match(team, results_url)
+        if not os.path.exists("../replays"):
+            os.makedirs("../replays")
         for match in match_url[:replay_count]:
             match_filename = match.split('/')[-1]
             if dupe_check_replays(match_filename):
