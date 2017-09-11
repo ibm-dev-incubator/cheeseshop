@@ -2,6 +2,7 @@
 import os
 import sys
 
+
 def get_replay(sha1sum):
     """ Retrieve a replay given the sha1sum unique name of the
     replay file"""

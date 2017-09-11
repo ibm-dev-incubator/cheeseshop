@@ -1,6 +1,6 @@
 from enum import Enum
 
-import asyncpg
+# import asyncpg
 
 
 class NotFoundError(Exception):
@@ -125,7 +125,6 @@ class Replay(object):
     def from_db_row(row):
         return Replay(row['id'], row['uuid'], row['game_id'],
                       ReplayUploadState(row['upload_state']), row['sha1sum'])
-
 
     def __init__(self, id_, uuid, game_id, upload_state, sha1sum):
         self.id = id_
@@ -385,8 +384,10 @@ class CsGoEventMapRelation(object):
         ev_maps = []
         async for record in conn.cursor('''
             SELECT * FROM cs_go_gsi_events
-            INNER JOIN cs_go_event_map_releation ON cs_go_gsi_events.id = cs_go_event_map_releation.event_id
-            INNER JOIN cs_go_map ON cs_go_event_map_releation.map_id = cs_go_map.id
+            INNER JOIN cs_go_event_map_releation ON cs_go_gsi_events.id =
+                       cs_go_event_map_releation.event_id
+            INNER JOIN cs_go_map ON cs_go_event_map_releation.map_id =
+                       cs_go_map.id
             WHERE cs_go_gsi_events.streamer_id = $1
             ORDER BY cs_go_gsi_events.id ASC
             LIMIT $2

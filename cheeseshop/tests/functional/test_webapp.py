@@ -112,7 +112,7 @@ class TestCsGoGsi(base.FunctionalTestCase):
 
     async def test_streamer_map_change(self):
         src_uuid = await self._create_source()
-        source_base_uri = self._get_source_base_uri(src_uuid)
+        # source_base_uri = self._get_source_base_uri(src_uuid)
 
         # We shouldnt have any maps detected yet
         self.assertFalse(await self._get_maps())
