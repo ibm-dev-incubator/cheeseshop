@@ -3,6 +3,10 @@ from enum import Enum
 import asyncpg
 
 
+class NotFoundError(Exception):
+    pass
+
+
 class Game(object):
     @staticmethod
     async def create_schema(conn):
@@ -39,6 +43,8 @@ class Game(object):
             SELECT * FROM games
             WHERE name = $1
         ''', name)
+        if row is None:
+            raise NotFoundError()
         return Game(row['id'], row['name'], row['description'])
 
     def __init__(self, id_, name, description):
@@ -50,6 +56,7 @@ class Game(object):
 class ReplayUploadState(Enum):
     ERROR = 'error'
     UPLOADING_TO_SWIFT = 'uploading_to_swift'
+    CLIENT_UPLOADING_TO_SWIFT = 'client_uploading_to_swift'
     COMPLETE = 'complete'
 
 
@@ -60,6 +67,7 @@ class Replay(object):
             CREATE TYPE replay_upload_state AS ENUM (
                 'error',
                 'uploading_to_swift',
+                'client_uploading_to_swift',
                 'complete'
             )
         ''')
@@ -109,6 +117,8 @@ class Replay(object):
         row = await conn.fetchrow('''
             SELECT * FROM replays WHERE sha1sum = $1
         ''', sha1sum)
+        if row is None:
+            raise NotFoundError()
         return Replay.from_db_row(row)
 
     @staticmethod
@@ -271,6 +281,31 @@ class CsGoGsiEvent(object):
         self.event = event
 
 
+class CsGoHltvEventType(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_hltv_event_types(
+                id serial PRIMARY KEY,
+                name text UNIQUE NOT NULL
+            )
+        ''')
+
+
+class CsGoHltvEvent(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_hltv_events(
+                id serial PRIMARY KEY,
+                time timestamp,
+                replay_id integer REFERENCES replays (id),
+                type integer REFERENCES cs_go_hltv_event_types,
+                event json
+            )
+        ''')
+
+
 class CsGoMap(object):
     @staticmethod
     async def create_schema(conn):
@@ -376,6 +411,8 @@ class CsGoEventMapRelation(object):
 async def create_schema(conn):
     await Game.create_schema(conn)
     await Replay.create_schema(conn)
+    await CsGoHltvEventType.create_schema(conn)
+    await CsGoHltvEvent.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
     await CsGoMap.create_schema(conn)

@@ -14,6 +14,7 @@ from cheeseshop import dbapi
 from cheeseshop.games import csgo
 from cheeseshop import objectstoreapi
 from cheeseshop import swift
+from cheeseshop import util
 
 
 def parse_args(args):
@@ -60,12 +61,33 @@ class App(object):
             'games': games
         }
 
-    @aiohttp_jinja2.template('post_upload.html')
     async def handle_post_upload(self, request):
         req_data = await request.post()
         replay = None
+
         async with self.sql_pool.acquire() as conn:
             async with conn.transaction():
+                # If a user supplied a sha and didnt specify overwrite we need
+                # to check if the replay already exists
+                if ('replay_sha1sum' in req_data
+                        and not util.truthy(req_data.get('overwrite'))):
+                    try:
+                        existing = await dbapi.Replay.get_by_sha1sum(
+                            conn, req_data['replay_sha1sum']
+                        )
+                    except dbapi.NotFoundError:
+                        pass
+                    else:
+                        return web.Response(text='Replay sha1 already exists',
+                                            status=409)
+                # If we werent supplied a sha1sum then the file must be sent
+                elif ('replay_sha1sum' not in req_data
+                      and 'replay_file' not in req_data):
+                    return web.Response(
+                        text='Must specify sha1sum or send file',
+                        status=400
+                    )
+
                 game = await dbapi.Game.get_by_name(conn, req_data['game'])
                 replay_uuid = str(uuid.uuid4())
                 replay = await dbapi.Replay.create(
@@ -75,6 +97,7 @@ class App(object):
                     dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
                     None
                 )
+
         # Swift uploads can take a while so release our db connection
         swift_data = objectstoreapi.ReplayData(
             replay.uuid,
@@ -82,8 +105,21 @@ class App(object):
         )
         async with self._keystone_session() as keystone_session:
             async with self._swift_client(keystone_session) as swift_client:
-                await swift_data.set_data(swift_client,
-                                          req_data['replay_file'].file.read())
+                if 'replay_file' in req_data:
+                    await swift_data.set_data(
+                        swift_client,
+                        req_data['replay_file'].file.read()
+                    )
+                elif 'replay_sha1sum' in req_data:
+                    tempurl = await swift_data.create_tempurl(swift_client)
+                    context = {
+                        'tempurl': tempurl
+                    }
+                    return aiohttp_jinja2.render_template(
+                        'post_upload_tempurl.html',
+                        request,
+                        context
+                    )
 
         async with self.sql_pool.acquire() as conn:
             async with conn.transaction():
@@ -92,10 +128,13 @@ class App(object):
                     dbapi.ReplayUploadState.COMPLETE
                 )
 
-        return {
+        context = {
             'game': game,
             'replay': replay
         }
+        return aiohttp_jinja2.render_template('post_upload_fullreplay.html',
+                                              request,
+                                              context)
 
     @aiohttp_jinja2.template('list_replays.html')
     @db.with_transaction

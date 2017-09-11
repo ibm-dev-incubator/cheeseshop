@@ -150,3 +150,9 @@ class SwiftClient(object):
             async with client.put(put_uri, data=data, headers=headers) as req:
                 txt = await req.text()
                 assert req.status == 201
+
+    async def create_tempurl(self, name, container=None):
+        assert container is not None or self.container is not None
+        container = container or self.container
+
+        # TODO:greghaynes Implement this
