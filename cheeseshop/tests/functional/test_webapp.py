@@ -90,7 +90,7 @@ class TestCsGo(base.FunctionalTestCase):
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
         maps_resp_txt = await maps_resp.text()
-        return re.findall('<li>.*UUID: (.*)</li>', maps_resp_txt)
+        return re.findall('<li>.*UUID: (.*) <a.*', maps_resp_txt)
 
     async def test_streamer_map_change(self):
         src_uuid = await self._create_source()
