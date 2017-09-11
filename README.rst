@@ -13,6 +13,7 @@ Install cheeseshop via pip
      git clone https://github.com/ibm-dev-incubator/cheeseshop
      cd cheeseshop
      pip install .
+     make prep-dev
 
 
 Create and edit config file
@@ -21,6 +22,13 @@ Create and edit config file
 
     cp example_config.yaml config.yaml
     vim config.yaml
+
+
+Create the schema
+
+.. code:: shell
+
+    cheeseshop-webapp config.yaml --create-schema
 
 
 Start the service
