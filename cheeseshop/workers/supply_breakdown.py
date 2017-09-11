@@ -1,12 +1,13 @@
 # worker
 # Takes one sc2 replay file and produces a json object
-# produces two sets of time series, one set for each player, one time series for each unit type
+# produces two sets of time series, one set for each player, one time series
+# for each unit type
 
 # Rough structure:
 # {
 #   "map": "Echo LE(Void",
 #   [
-#      { 
+#      {
 #        "name": "Neeb"
 #        "army_supply": [
 #          {
@@ -17,7 +18,7 @@
 #          ...
 #        ],
 #      },
-#      { 
+#      {
 #        "name": "MarineLord"
 #        "army_supply": [
 #          {
@@ -29,7 +30,7 @@
 #        ],
 #      }
 #    ]
-#}
+# }
 
 import argparse
 import hashlib
@@ -107,12 +108,14 @@ army_units = ['Nuke',  # I guess
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description='Cheeseshop worker: supply_breakdown')
+    parser = argparse.ArgumentParser(
+        description='Cheeseshop worker: supply_breakdown'
+    )
     parser.add_argument('--sha1sum', type=str, help='Sha1sum of replay')
     return parser.parse_args(args)
 
 
-def main():
+def main():     # noqa: C901
     args = parse_args(sys.argv[1:])
     r = get_replay(args.sha1sum)
     replay = sc2reader.load_replay(
@@ -172,10 +175,10 @@ def main():
         for key, value in unit_supplies.items():
             obj = {}
             obj['name'] = key
-            color = "#" +  hashlib.sha224(bytes(key, 'utf-8')).hexdigest()[:6]
+            color = "#" + hashlib.sha224(bytes(key, 'utf-8')).hexdigest()[:6]
             obj['color'] = color
             xy_tuples = []
-            for index,number in enumerate(value):
+            for index, number in enumerate(value):
                 point = {}
                 point['x'] = times[index]
                 point['y'] = number

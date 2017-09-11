@@ -69,10 +69,10 @@ class App(object):
             async with conn.transaction():
                 # If a user supplied a sha and didnt specify overwrite we need
                 # to check if the replay already exists
-                if ('replay_sha1sum' in req_data
-                        and not util.truthy(req_data.get('overwrite'))):
+                if ('replay_sha1sum' in req_data and not
+                        util.truthy(req_data.get('overwrite'))):
                     try:
-                        existing = await dbapi.Replay.get_by_sha1sum(
+                        await dbapi.Replay.get_by_sha1sum(
                             conn, req_data['replay_sha1sum']
                         )
                     except dbapi.NotFoundError:
@@ -81,8 +81,8 @@ class App(object):
                         return web.Response(text='Replay sha1 already exists',
                                             status=409)
                 # If we werent supplied a sha1sum then the file must be sent
-                elif ('replay_sha1sum' not in req_data
-                      and 'replay_file' not in req_data):
+                elif ('replay_sha1sum' not in req_data and
+                        'replay_file' not in req_data):
                     return web.Response(
                         text='Must specify sha1sum or send file',
                         status=400

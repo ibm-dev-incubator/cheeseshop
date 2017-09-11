@@ -11,10 +11,14 @@ from sc2reader.engine.plugins import ContextLoader, GameHeartNormalizer
 
 from cheeseshop.util import get_replay
 
+
 def parse_args(args):
-    parser = argparse.ArgumentParser(description='Cheeseshop worker: player_names')
+    parser = argparse.ArgumentParser(
+        description='Cheeseshop worker: player_names'
+    )
     parser.add_argument('--sha1sum', type=str, help='Sha1sum of replay')
     return parser.parse_args(args)
+
 
 def main():
     args = parse_args(sys.argv[1:])

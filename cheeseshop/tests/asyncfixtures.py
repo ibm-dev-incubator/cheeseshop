@@ -4,7 +4,7 @@ from fixtures.fixture import gather_details
 
 class TestWithAsyncFixtures:
     async def useAsyncFixture(self, fixture):
-	# Code modified from fixtures.testcase
+        # Code modified from fixtures.testcase
         use_details = (
             gather_details is not None and
             getattr(self, "addDetail", None) is not None)

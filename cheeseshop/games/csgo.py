@@ -2,7 +2,7 @@ import asyncio
 import collections
 from concurrent.futures import FIRST_COMPLETED
 import datetime
-from enum import Enum
+# from enum import Enum
 import json
 import uuid
 
@@ -43,7 +43,7 @@ class GsiPlayer(object):
             self._ws.send_json(await self._event_queue.get())
 
     async def _listen(self):
-        async for msg in self._ws:
+        async for msg in self._ws:  # noqa: F841
             pass
 
 
@@ -90,8 +90,8 @@ class MapState(object):
         if self.phase is None and phase is not None:
             return True
         if (self.phase == 'gameover' and
-            phase != 'gameover'):
-            return True
+                phase != 'gameover'):
+                return True
         return (self.name != name or
                 set((self.team_t, self.team_ct)) !=
                 set((team_t, team_ct)))

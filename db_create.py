@@ -19,6 +19,7 @@ def parse_args(args):
                         help='Path to config file')
     return parser.parse_args(args)
 
+
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     config = cs_config.Config.from_yaml_file(args.config_file)
@@ -27,4 +28,3 @@ if __name__ == "__main__":
     engine = sa_create_engine(dsn)
     dbapi.metadata.create_all(engine)
     engine.dispose()
-
