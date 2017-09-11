@@ -9,6 +9,10 @@ services:
 notifications:
   email: false
 
+env:
+  - TEST_RUN="tox -e $(echo py$TRAVIS_PYTHON_VERSION | tr -d .)"
+  - TEST_RUN="tox -e lint"
+
 before_install:
   - psql -c 'create user cheeseshop;' -U postgres
   - psql -c 'ALTER USER cheeseshop CREATEDB;' -U postgres
@@ -19,4 +23,4 @@ install:
   - pip install -r test-requirements.txt
   - pip install .
 
-script: tox -e $(echo py$TRAVIS_PYTHON_VERSION | tr -d .)
+script: "$TEST_RUN"
