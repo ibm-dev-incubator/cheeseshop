@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}CS:GO Death Log{% endblock %}
+{% block head %}
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/static/js/simpleheat.js"></script>
+    <script src="/static/js/de_heatmp.js"> </script>
+{% endblock %}
+{% block content %}
+    <h1>Entry Kill Heatmap</h1>
+    <div id="nav">
+      <button id="generate" type="button">Generate</button>
+      <b>Select Map</b>
+      <select name="map_pick" id="map_pick">
+        {% for map in game_maps %}
+        <option value='{{ map }}'>{{ map }}</option>
+        {% endfor %}
+      </select>
+      <b>Select T Team</b>
+      <select id="t_team_pick" name="t_team_pick">
+        <option value='any'>any</option>
+        {% for team in teams %}
+        <option value='{{ team }}'>{{ team }}</option>
+        {% endfor %}
+      </select>
+      <b>Select CT Team</b>
+      <select id="ct_team_pick" name="ct_team_pick">
+        <option value='any'>any</option>
+        {% for team in teams %}
+        <option value='{{ team }}'>{{ team }}</option>
+        {% endfor %}
+      </select>
+      <b>Select Weapon</b>
+      <select id="weapon_pick" name="weapon_pick">
+        <option value='any'>any</option>
+        {% for weapon in weapons %}
+        <option value='{{ weapon }}'>{{ weapon }}</option>
+        {% endfor %}
+      </select>
+      <b>Select Player</b>
+      <select id="player_pick" name="player_pick">
+        <option value='any'>any</option>
+        {% for player in players %}
+        <option value='{{ player.team + "." + player.name }}'>{{ player.team + "." + player.name }}</option>
+        {% endfor %}
+      </select>
+      <b>Select Time</b>
+      <select id="time_pick" name="time_pick">
+        <option value='all_time'>all time</option>
+        <option value='last_5_maps'>last 5 maps</option>
+        <option value='last_15_maps'>last 15 maps</option>
+        <option value='last_25_maps'>last 25 maps</option>
+        {% for event in events %}
+        <option value='{{ event }}'>{{ event }}</option>
+        {% endfor %}
+      </select>
+      <b>Select Context</b>
+      <select id="context_pick" name="context_pick">
+        <option value='any'>any</option>
+        <option value='pistol'>pistol</option>
+        <option value='force_buy'>force buy</option>
+        <option value='opponent_force_buy'>opponent force buy</option>
+      </select>
+    </div>
+    <div id="container">
+      <canvas id="canvas" width="1024" height="1024"></canvas>
+    </div>
+    <script type="text/javascript">
+    var heatmp_options = { point_weight: 1,
+                           asset_prefix: "/static/" }
+
+    var points_array = [];
+    $( "#generate").click(function() {
+
+      var parameters =  {
+        'map': $("#map_pick").val(),
+        't_team': $("#t_team_pick").val(),
+        'ct_team': $("#ct_team_pick").val(),
+        'weapon': $("#weapon_pick").val(),
+        'player': $("#player_pick").val(),
+        'time': $("#time_pick").val(),
+        'context': $("#context_pick").val(),
+      //  'c': 1
+      }
+      console.log(parameters);
+      $.getJSON("{{ api_endpoint }}?ev_types=deaths&custom_filter=first_in_game" + $.param(parameters), function(data) {
+        data.forEach(function(gamestate_event, index) {
+          if ("allplayers" in gamestate_event.event){
+            Object.keys(gamestate_event.event.allplayers).forEach(function(player_id, index) {
+              // get position of player (in csgo coordinates) - append to array
+              let position = gamestate_event.event.allplayers[player_id]
+                .position.split(",")
+                .map(parseFloat);
+
+              points_array.push(position);
+            });
+          }
+        });
+
+        // Create heatmap, passing map name and array of csgo coordinates
+        var heatmap = new de_heatmp( "canvas", "de_cbble", points_array, heatmp_options );
+        // Draw heatmap
+        heatmap.draw();
+      });
+    });
+
+    </script>
+{% endblock %}
+
