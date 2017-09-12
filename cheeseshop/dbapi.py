@@ -305,6 +305,30 @@ class CsGoHltvEvent(object):
         ''')
 
 
+class CsGoSteamId(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_steam_ids(
+                id serial PRIMARY KEY,
+                steam_id text UNIQUE NOT NULL
+            )
+        ''')
+
+
+class CsGoDeathEvent(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_death_events(
+                id serial PRIMARY KEY,
+                attacker integer REFERENCES cs_go_steam_ids (id),
+                victim integer REFERENCES cs_go_steam_ids (id),
+                weapon text
+            )
+        ''')
+
+
 class CsGoMap(object):
     @staticmethod
     async def create_schema(conn):
@@ -414,6 +438,8 @@ async def create_schema(conn):
     await Replay.create_schema(conn)
     await CsGoHltvEventType.create_schema(conn)
     await CsGoHltvEvent.create_schema(conn)
+    await CsGoSteamId.create_schema(conn)
+    await CsGoDeathEvent.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
     await CsGoMap.create_schema(conn)
