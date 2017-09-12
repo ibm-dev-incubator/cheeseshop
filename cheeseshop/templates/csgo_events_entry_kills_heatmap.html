@@ -82,7 +82,7 @@
       //  'c': 1
       }
       console.log(parameters);
-      $.getJSON("{{ api_endpoint }}?ev_types=deaths&custom_filter=first_in_game" + $.param(parameters), function(data) {
+      $.getJSON("{{ api_endpoint }}?ev_types=deaths&custom_filter=first_in_game&" + $.param(parameters), function(data) {
         data.forEach(function(gamestate_event, index) {
           if ("allplayers" in gamestate_event.event){
             Object.keys(gamestate_event.event.allplayers).forEach(function(player_id, index) {

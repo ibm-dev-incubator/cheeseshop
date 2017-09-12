@@ -311,9 +311,43 @@ class CsGoSteamId(object):
         await conn.execute('''
             CREATE TABLE cs_go_steam_ids(
                 id serial PRIMARY KEY,
-                steam_id text UNIQUE NOT NULL
+                steam_id text UNIQUE NOT NULL,
+                print_name text,
+                team integer REFERENCES cs_go_team_ids (id)
             )
         ''')
+
+    @staticmethod
+    async def get_all(conn):
+        players= []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_steam_ids
+        '''):
+            players.append({
+                'id': record['steam_id'],
+                'name': record['print_name'],
+                'team': record['team_name}']})
+        return players
+
+
+class CsGoTeam(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_team_ids(
+                id serial PRIMARY KEY,
+                team_name text UNIQUE NOT NULL
+            )
+        ''')
+
+    @staticmethod
+    async def get_all(conn):
+        teams = []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_team_ids
+        '''):
+            teams.append(record['team_name'])
+        return teams
 
 
 class CsGoDeathEvent(object):
@@ -323,8 +357,18 @@ class CsGoDeathEvent(object):
             CREATE TABLE cs_go_death_events(
                 id serial PRIMARY KEY,
                 attacker integer REFERENCES cs_go_steam_ids (id),
+                attacker_pos_x real,
+                attacker_pos_y real,
+                attacker_pos_z real,
                 victim integer REFERENCES cs_go_steam_ids (id),
-                weapon text
+                victim_pos_x real,
+                victim_pos_y real,
+                victim_pos_z real,
+                assister integer REFERENCES cs_go_steam_ids (id),
+                weapon_original_owner integer REFERENCES cs_go_steam_ids (id),
+                penetrated boolean,
+                weapon text,
+                map text
             )
         ''')
 

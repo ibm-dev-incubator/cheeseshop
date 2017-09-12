@@ -268,11 +268,9 @@ class CsGoApi(gameapi.GameApi):
     @db.with_transaction
     async def _handle_events_entry_kills_heatmap(self, conn, request):
         """
-        game_maps = await dbapi.CsGoHist.get_all_maps(conn)
-        teams = await dbapi.CsGoHist.get_all_teams(conn)
-        players = await dbapi.CsGoHist.get_all_players(conn)
-        weapons = await dbapi.CsGoHist.get_all_weapons(conn)
-        events = await dbapi.CsGoHist.get_all_tournaments(conn)
+        game_maps = await dbapi.???.get_all_maps(conn)
+        weapons = await dbapi.???.get_all_weapons(conn)
+        events = await dbapi.???.get_all_tournaments(conn)
         """
         game_maps = ['inferno',
                      'cobble',
@@ -281,21 +279,12 @@ class CsGoApi(gameapi.GameApi):
                      'mirage',
                      'overpass',
                      'nuke']
-        teams = ['cloud9', 'north', 'immortals', 'clg']
-        players = [
-            {'name': 'cajunb',
-             'team': 'north'},
-            {'name': 'MSL',
-             'team': 'north'},
-            {'name': 'aizy',
-             'team': 'north'},
-            {'name': 'valde',
-             'team': 'north'},
-            {'name': 'k0nfig',
-             'team': 'north'}]
         weapons = ['ak47', 'awp']
         events = ["dreamhack_masters_malmo_2017",
                   "dreamhack_astro_montreal_2017"]
+        teams = await dbapi.CsGoTeam.get_all(conn)
+        players = await dbapi.CsGoPlayers.get_all(conn)
+
         return {
             'game_maps': game_maps,
             'teams': teams,
