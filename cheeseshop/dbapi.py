@@ -1,6 +1,8 @@
 from enum import Enum
+from datetime import datetime
+import sys
 
-# import asyncpg
+import asyncpg
 
 
 class NotFoundError(Exception):
@@ -424,3 +426,27 @@ async def create_initial_records(conn):
     async with conn.transaction():
         await Game.create(conn, 'sc2', 'StarCraft 2')
         await Game.create(conn, 'cs:go', 'Counter Strike: Global Offensive')
+
+
+async def db_backup(conn):
+    tables = ['games', 'replays', 'cs_go_streamer', 'cs_go_gsi_eventsi',
+              'cs_go_hltv_event_types', 'cs_go_hltv_events', 'cs_go_map',
+              'cs_go_event_map_relation']
+    timestamp = str(datetime.now()).replace(' ', '')
+
+    try:
+        backup_file = open('cheeseshop_db_' + timestamp + '.sql')
+        async for table in tables:
+            rows = await conn.execute('''SELECT * FROM $1''', table)
+            async for row in rows:
+                if row is None:
+                    raise NotFoundError()
+                backup_file.write(row)
+    except asyncpg.PostgresError as e:
+        print('ERROR: %s' % e)
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+        if backup_file:
+            backup_file.close()
