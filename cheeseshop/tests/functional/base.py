@@ -1,4 +1,4 @@
-import asyncio
+# import asyncio
 import copy
 
 from aiohttp import web
@@ -8,7 +8,8 @@ import jinja2
 
 from cheeseshop import db, dbapi
 from cheeseshop import main as cs_main
-from cheeseshop.tests import asyncfixtures, base
+# from cheeseshop.tests import asyncfixtures, base
+from cheeseshop.tests import base
 
 
 class FunctionalTestCase(base.TestCase):

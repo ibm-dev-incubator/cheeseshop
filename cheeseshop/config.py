@@ -31,7 +31,8 @@ class Config(object):
             raw_config = yaml.load(fh)
         swift_config = SwiftConfig(**raw_config['swift'])
         sql_config = SqlConfig(**raw_config['sql'])
-        return Config(raw_config['host'], raw_config['port'],raw_config['base_uri'], swift_config, sql_config)
+        return Config(raw_config['host'], raw_config['port'],
+                      raw_config['base_uri'], swift_config, sql_config)
 
     def __init__(self, host, port, base_uri, swift, sql):
         self.host = host

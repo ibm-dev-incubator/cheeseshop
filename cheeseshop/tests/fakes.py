@@ -42,3 +42,6 @@ class FakeSwiftClient(object):
 
     async def get_object(self, name, container):
         return get_swift_object(name, container)
+
+    async def create_tempurl(self, name, container):
+        return 'http://some-swift.com/tempurl-unique'

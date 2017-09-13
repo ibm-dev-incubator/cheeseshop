@@ -8,7 +8,7 @@ from cheeseshop.tests.functional import base
 
 
 class TestUploads(base.FunctionalTestCase):
-    async def test_upload(self):
+    async def test_upload_success(self):
         resp = await self.client.get("/upload")
         self.assertEqual(resp.status, 200)
         resp_text = await resp.text()
@@ -43,8 +43,26 @@ class TestUploads(base.FunctionalTestCase):
         resp_text = await resp.text()
         self.assertTrue(re.search(uuid, resp_text))
 
+    async def test_upload_conflicts(self):
+        data = FormData()
+        data.add_field('game', 'cs:go')
+        data.add_field('replay_sha1sum', 'replay_sha1sum')
 
-class TestCsGo(base.FunctionalTestCase):
+        with fixtures.MonkeyPatch('cheeseshop.swift.KeystoneSession',
+                                  fakes.FakeKeystoneSession):
+            with fixtures.MonkeyPatch('cheeseshop.swift.SwiftClient',
+                                      fakes.FakeSwiftClient):
+                resp = await self.client.post("/upload", data=data)
+                resp_text = await resp.text()
+                self.assertEqual(resp.status, 200)
+                tempurl = re.search(
+                    'swift tempurl: (.*)</li>', resp_text
+                ).group(1)
+                self.assertEqual(tempurl,
+                                 'http://some-swift.com/tempurl-unique')
+
+
+class TestCsGoGsi(base.FunctionalTestCase):
     async def test_streamer(self):
         uuid = await self._create_source()
         resp = await self.client.get("/games/csgo/gsi/sources")
@@ -90,11 +108,11 @@ class TestCsGo(base.FunctionalTestCase):
         maps_resp = await self.client.get('/games/csgo/gsi/maps')
         self.assertEqual(maps_resp.status, 200)
         maps_resp_txt = await maps_resp.text()
-        return re.findall('<li>.*UUID: (.*)</li>', maps_resp_txt)
+        return re.findall('<li>.*UUID: (.*) <a.*', maps_resp_txt)
 
     async def test_streamer_map_change(self):
         src_uuid = await self._create_source()
-        source_base_uri = self._get_source_base_uri(src_uuid)
+        # source_base_uri = self._get_source_base_uri(src_uuid)
 
         # We shouldnt have any maps detected yet
         self.assertFalse(await self._get_maps())

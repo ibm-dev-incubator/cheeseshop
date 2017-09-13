@@ -2,6 +2,7 @@
 import os
 import sys
 
+
 def get_replay(sha1sum):
     """ Retrieve a replay given the sha1sum unique name of the
     replay file"""
@@ -15,3 +16,8 @@ def get_replay(sha1sum):
     replay_path = os.path.join(replay_dir, sha1sum + ".SC2Replay")
     return replay_path
 
+
+def truthy(val):
+    if type(val) == str:
+        return val in ('True', 'true', 't', 'yes')
+    return bool(val)

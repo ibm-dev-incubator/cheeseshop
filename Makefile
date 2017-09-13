@@ -4,6 +4,13 @@ REV_FILE=.make-rev-check
 set-rev:
 	git rev-parse --short HEAD > $(REV_FILE)
 
+prep-dev: set-rev
+	git clone https://github.com/ibm-dev/de_heatmp cheeseshop/static/de_heatmp
+	mkdir -p cheeseshop/static/js/
+	cp cheeseshop/static/de_heatmp/de_heatmp.js cheeseshop/static/js/
+	cp cheeseshop/static/de_heatmp/simpleheat.js cheeseshop/static/js/
+	cp -r cheeseshop/static/de_heatmp/images cheeseshop/static/
+
 images: set-rev
 	./deploy/images/make-image.sh deploy/images/static-server.Dockerfile "cheeseshop-static:$$(cat $(REV_FILE))"
 	./deploy/images/make-image.sh deploy/images/cheeseshop.Dockerfile "cheeseshop-webapp:$$(cat $(REV_FILE))"
@@ -18,7 +25,7 @@ upload-images: set-rev
 
 .PHONY: deploy
 deploy: set-rev
-	IMAGE_TAG=$$(cat $(REV_FILE)) envsubst < deploy/webapp.yaml | kubectl create -f -
+	IMAGE_TAG=$$(cat $(REV_FILE)) envsubst < deploy/webapp.yaml | kubectl apply -f -
 
 delete-deployments:
 	kubectl delete deployment cheeseshop-static

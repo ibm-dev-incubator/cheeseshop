@@ -1,5 +1,6 @@
 import aiohttp
 
+
 class KeystoneCatalogEndpoint(object):
     def __init__(self, id, interface, region, region_id, url):
         self.id = id
@@ -148,5 +149,11 @@ class SwiftClient(object):
         headers = {'X-Auth-Token': self._keystone_session.token.token_id}
         async with aiohttp.ClientSession() as client:
             async with client.put(put_uri, data=data, headers=headers) as req:
-                txt = await req.text()
+                await req.text()
                 assert req.status == 201
+
+    async def create_tempurl(self, name, container=None):
+        assert container is not None or self.container is not None
+        container = container or self.container
+
+        # TODO:greghaynes Implement this

@@ -19,4 +19,9 @@ install:
   - pip install -r test-requirements.txt
   - pip install .
 
+jobs:
+  include:
+    - stage: lint
+      script: tox -e lint
+
 script: tox -e $(echo py$TRAVIS_PYTHON_VERSION | tr -d .)

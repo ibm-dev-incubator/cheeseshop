@@ -2,5 +2,8 @@
 *.egg-info
 __pycache__
 .eggs
+.tox
+AUTHORS
+ChangeLog
 *.rar
 *.dem

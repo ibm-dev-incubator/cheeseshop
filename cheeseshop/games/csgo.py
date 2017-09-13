@@ -2,7 +2,7 @@ import asyncio
 import collections
 from concurrent.futures import FIRST_COMPLETED
 import datetime
-from enum import Enum
+# from enum import Enum
 import json
 import uuid
 
@@ -43,7 +43,7 @@ class GsiPlayer(object):
             self._ws.send_json(await self._event_queue.get())
 
     async def _listen(self):
-        async for msg in self._ws:
+        async for msg in self._ws:  # noqa: F841
             pass
 
 
@@ -90,8 +90,8 @@ class MapState(object):
         if self.phase is None and phase is not None:
             return True
         if (self.phase == 'gameover' and
-            phase != 'gameover'):
-            return True
+                phase != 'gameover'):
+                return True
         return (self.name != name or
                 set((self.team_t, self.team_ct)) !=
                 set((team_t, team_ct)))
@@ -144,11 +144,23 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_gsi_maps)
         router.add_get('/games/csgo/gsi/maps/{map_uuid}/replay',
                        self._handle_gsi_map_replay)
+        router.add_get('/games/csgo/gsi/maps/{map_uuid}/position_heatmap',
+                       self._handle_gsi_map_heatmap)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/deathlog',
                        self._handle_gsi_deathlog)
+        router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/moneylog',
+                       self._handle_gsi_moneylog)
 
     @aiohttp_jinja2.template('csgo_deathlog.html')
     async def _handle_gsi_deathlog(self, request):
+        streamer_uuid = request.match_info.get('streamer_uuid')
+        ws_url = '/games/csgo/gsi/sources/%s/play' % streamer_uuid
+        return {
+            'gsi_websocket_url': ws_url
+        }
+
+    @aiohttp_jinja2.template('csgo_moneylog.html')
+    async def _handle_gsi_moneylog(self, request):
         streamer_uuid = request.match_info.get('streamer_uuid')
         ws_url = '/games/csgo/gsi/sources/%s/play' % streamer_uuid
         return {
@@ -210,6 +222,14 @@ class CsGoApi(gameapi.GameApi):
                 'event': json.loads(event.event)
             })
         return web.json_response(dict_events)
+
+    @aiohttp_jinja2.template('csgo_position_heatmap.html')
+    async def _handle_gsi_map_heatmap(self, request):
+        map_uuid = request.match_info.get('map_uuid')
+        ws_url = '/games/csgo/gsi/maps/%s/replay' % map_uuid
+        return {
+            'gsi_websocket_url': ws_url
+        }
 
     @aiohttp_jinja2.template('get_gsi.html')
     @db.with_transaction
