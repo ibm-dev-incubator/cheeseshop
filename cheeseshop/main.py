@@ -168,6 +168,7 @@ def main():
     if args.create_schema:
         conn = loop.run_until_complete(pool.acquire())
         loop.run_until_complete(dbapi.create_schema(conn))
+        loop.run_until_complete(dbapi.create_initial_records(conn))
         print('DB Schema created')
     else:
         app = App(config, pool)
