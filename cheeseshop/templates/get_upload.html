@@ -2,7 +2,7 @@
 {% block title %}Upload{% endblock %}
 {% block content %}
     <h2>Upload a replay</h2>
-    <form>
+    <form action="/upload" method="post">
         Game:
         <select name="game">
 {% for game in games %}
