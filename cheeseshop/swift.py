@@ -120,12 +120,13 @@ class KeystoneSession(object):
 
 class SwiftClient(object):
     def __init__(self, keystone_session, region_id, interface='public',
-                 container=None):
+                 container=None, temp_url_key=None):
         self._keystone_session = keystone_session
         self.region_id = region_id
         self.interface = interface
         self.container = container
         self.service = None
+        self.temp_url_key = temp_url_key
 
     async def __aenter__(self):
         catalog = self._keystone_session.catalog
@@ -155,5 +156,7 @@ class SwiftClient(object):
     async def create_tempurl(self, name, container=None):
         assert container is not None or self.container is not None
         container = container or self.container
+        #print(self.temp_url_key)
+        return container
 
         # TODO:greghaynes Implement this
