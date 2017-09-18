@@ -155,7 +155,7 @@ class App(object):
         swift_config = self.config.swift
         return swift.SwiftClient(keystone_session,
                                  swift_config.region,
-                                 swift_config.temp_url_key)
+                                 temp_url_key=swift_config.temp_url_key)
 
 
 def main():

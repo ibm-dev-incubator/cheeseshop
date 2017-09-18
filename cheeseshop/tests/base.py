@@ -13,7 +13,8 @@ class TestCase(asynctest.TestCase, asyncfixtures.TestWithAsyncFixtures):
                                           'swift_user_id',
                                           'swift_password',
                                           'swift_region',
-                                          'replays_container')
+                                          'replays_container',
+                                          'temp_url_key')
         sql_config = config.SqlConfig('cheeseshop',
                                       'cheeseshop-%s' % uuid.uuid4(),
                                       'localhost', 5432,

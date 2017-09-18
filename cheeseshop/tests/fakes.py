@@ -26,7 +26,8 @@ class FakeKeystoneSession(object):
 
 
 class FakeSwiftClient(object):
-    def __init__(self, keystone_session, region_id, interface='public'):
+    def __init__(self, keystone_session, region_id, interface='public',
+                 temp_url_key=None):
         global swift_storage
         if swift_storage is None:
             swift_storage = collections.defaultdict(dict)

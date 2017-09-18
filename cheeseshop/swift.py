@@ -1,4 +1,7 @@
 import aiohttp
+import hmac
+from hashlib import sha1
+from time import time
 
 
 class KeystoneCatalogEndpoint(object):
@@ -156,7 +159,17 @@ class SwiftClient(object):
     async def create_tempurl(self, name, container=None):
         assert container is not None or self.container is not None
         container = container or self.container
-        #print(self.temp_url_key)
-        return container
+        method = 'PUT'
+        proto, barf, host, version, auth_account = self.endpoint.url.split('/')
+        location = "/".join([version, auth_account, container, name])
+        duration_in_seconds = 60 * 60 * 2
+        expires = int(time() + duration_in_seconds)
+        hmac_body = '{0}\n{1}\n/{2}'.format(method, expires, location)
+        sig = hmac.new(bytes(self.temp_url_key, 'ascii'),
+                       bytes(hmac_body, 'ascii'),
+                       sha1).hexdigest()
+        path = 'https://{host}/{location}'.format(host=host, location=location)
+        url = '{path}?temp_url_sig={sig}&temp_url_expires={expires}'.format(
+            path=path, sig=sig, expires=expires)
 
-        # TODO:greghaynes Implement this
+        return url
