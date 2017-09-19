@@ -161,14 +161,13 @@ class SwiftClient(object):
         container = container or self.container
         method = 'PUT'
         proto, barf, host, version, auth_account = self.endpoint.url.split('/')
-        location = "/".join([version, auth_account, container, name])
+        location = "/" + "/".join([version, auth_account, container, name])
         duration_in_seconds = 60 * 60 * 2
-        expires = int(time() + duration_in_seconds)
-        hmac_body = '{0}\n{1}\n/{2}'.format(method, expires, location)
-        sig = hmac.new(bytes(self.temp_url_key, 'ascii'),
-                       bytes(hmac_body, 'ascii'),
-                       sha1).hexdigest()
-        path = 'https://{host}/{location}'.format(host=host, location=location)
+        expires = str(int(time() + duration_in_seconds))
+        hmac_body = b"\n".join(map(lambda x: x.encode(),
+                                   [method, expires, location]))
+        sig = hmac.new(self.temp_url_key, hmac_body, sha1).hexdigest()
+        path = 'https://{host}{location}'.format(host=host, location=location)
         url = '{path}?temp_url_sig={sig}&temp_url_expires={expires}'.format(
             path=path, sig=sig, expires=expires)
 
