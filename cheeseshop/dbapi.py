@@ -330,13 +330,48 @@ class CsGoSteamId(object):
         return players
 
 
+class CsGoTeamNames(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_team_names(
+                id serial PRIMARY KEY,
+                team integer REFERENCES cs_go_team_ids (id),
+                team_name text
+            )
+        ''')
+
+    @staticmethod
+    async def get_names_by_id(conn, team_id):
+        names = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_team_names
+            WHERE id = $1
+        ''', team_id):
+            names.append(record['team_name'])
+        return names
+
+    @staticmethod
+    async def get_ids_by_name(conn, team_name):
+        ids = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_team_names
+            WHERE team_name LIKE %$1$%
+        ''', team_name):
+            ids.append(record['team'])
+        return ids
+
+    def __init__(self, id_, name):
+        self.id = id
+        self.name = name
+
+
 class CsGoTeam(object):
     @staticmethod
     async def create_schema(conn):
         await conn.execute('''
             CREATE TABLE cs_go_team_ids(
-                id serial PRIMARY KEY,
-                team_name text UNIQUE NOT NULL
+                id serial PRIMARY KEY
             )
         ''')
 
@@ -346,7 +381,7 @@ class CsGoTeam(object):
         async for record in conn.cursor('''
             SELECT * from cs_go_team_ids
         '''):
-            teams.append(record['team_name'])
+            teams.append(record['team_id'])
         return teams
 
 
@@ -366,7 +401,7 @@ class CsGoDeathEvent(object):
                 victim_pos_z real,
                 assister integer REFERENCES cs_go_steam_ids (id),
                 weapon_original_owner integer REFERENCES cs_go_steam_ids (id),
-                penetrated boolean,
+                penetrated smallint,
                 weapon text,
                 map text
             )
