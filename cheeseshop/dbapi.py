@@ -408,6 +408,83 @@ class CsGoDeathEvent(object):
         ''')
 
 
+class CsGoMatch(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_match(
+                id serial PRIMARY KEY,
+                uuid text UNIQUE,
+                start_time timestamp,
+                metadata text,
+                team_1 integer REFERENCES cs_go_team_ids (id),
+                team_2 integer REFERENCES cs_go_team_ids (id)
+            )
+        ''')
+        await conn.execute('''
+            CREATE UNIQUE INDEX ON cs_go_match (uuid)
+        ''')
+
+class CsGoMatchMapRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_match_to_map(
+                id serial PRIMARY KEY,
+                match REFERENCES cs_go_match (id),
+                map REFERENCES cs_go_map (id)
+            )
+        ''')
+
+
+class CsGoRound(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TYPE round_winner AS ENUM (
+                'T',
+                'CT',
+            )
+        ''')
+        await conn.execute('''
+            CREATE TYPE round_win_condition AS ENUM (
+                'defuse',
+                'explode',
+                'elimination',
+                'time',
+            )
+        ''')
+        await conn.execute('''
+            CREATE TABLE cs_go_rounds(
+                id serial PRIMARY KEY,
+                uuid text UNIQUE,
+                start_time timestamp,
+                length_seconds shortint,
+                bomb_planted boolean,
+                winner round_winner,
+                win_condition round_win_condition,
+                tick_start integer,
+                tick_end integer,
+                team_t integer REFERENCES cs_go_team_ids (id),
+                team_ct integer REFERENCES cs_go_team_ids (id),
+                map integer REFERENCES cs_go_map (id),
+                match integer REFERENCES cs_go_match (id)
+            )
+        ''')
+
+
+class CsGoMapRoundRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_map_to_round(
+                id serial PRIMARY KEY,
+                map REFERENCES cs_go_map (id),
+                match REFERENCES cs_go_round (id)
+            )
+        ''')
+
+
 class CsGoMap(object):
     @staticmethod
     async def create_schema(conn):
