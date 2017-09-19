@@ -403,7 +403,14 @@ class CsGoDeathEvent(object):
                 weapon_original_owner integer REFERENCES cs_go_steam_ids (id),
                 penetrated smallint,
                 weapon text,
-                map text
+                map_name text,
+                attacker_team text,
+                victim_team text,
+                match integer REFERENCES cs_go_match (id),
+                map integer REFERENCES cs_go_map (id),
+                round integer REFERENCES cs_go_round (id),
+                team_t integer REFERENCES cs_go_team_ids (id),
+                team_ct integer REFERENCES cs_go_team_ids (id)
             )
         ''')
 
