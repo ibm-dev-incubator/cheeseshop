@@ -319,7 +319,7 @@ class CsGoSteamId(object):
 
     @staticmethod
     async def get_all(conn):
-        players= []
+        players = []
         async for record in conn.cursor('''
             SELECT * from cs_go_steam_ids
         '''):
@@ -432,14 +432,15 @@ class CsGoMatch(object):
             CREATE UNIQUE INDEX ON cs_go_match (uuid)
         ''')
 
+
 class CsGoMatchMapRelation(object):
     @staticmethod
     async def create_schema(conn):
         await conn.execute('''
             CREATE TABLE cs_go_match_to_map(
                 id serial PRIMARY KEY,
-                match REFERENCES cs_go_match (id),
-                map REFERENCES cs_go_map (id)
+                match integer REFERENCES cs_go_match (id),
+                map integer REFERENCES cs_go_map (id)
             )
         ''')
 
@@ -450,7 +451,7 @@ class CsGoRound(object):
         await conn.execute('''
             CREATE TYPE round_winner AS ENUM (
                 'T',
-                'CT',
+                'CT'
             )
         ''')
         await conn.execute('''
@@ -458,15 +459,15 @@ class CsGoRound(object):
                 'defuse',
                 'explode',
                 'elimination',
-                'time',
+                'time'
             )
         ''')
         await conn.execute('''
-            CREATE TABLE cs_go_rounds(
+            CREATE TABLE cs_go_round(
                 id serial PRIMARY KEY,
                 uuid text UNIQUE,
                 start_time timestamp,
-                length_seconds shortint,
+                length_seconds smallint,
                 bomb_planted boolean,
                 winner round_winner,
                 win_condition round_win_condition,
@@ -486,8 +487,8 @@ class CsGoMapRoundRelation(object):
         await conn.execute('''
             CREATE TABLE cs_go_map_to_round(
                 id serial PRIMARY KEY,
-                map REFERENCES cs_go_map (id),
-                match REFERENCES cs_go_round (id)
+                map integer REFERENCES cs_go_map (id),
+                match integer REFERENCES cs_go_round (id)
             )
         ''')
 
@@ -601,12 +602,18 @@ async def create_schema(conn):
     await Replay.create_schema(conn)
     await CsGoHltvEventType.create_schema(conn)
     await CsGoHltvEvent.create_schema(conn)
-    await CsGoSteamId.create_schema(conn)
-    await CsGoDeathEvent.create_schema(conn)
+    await CsGoTeam.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
+    await CsGoMatch.create_schema(conn)
     await CsGoMap.create_schema(conn)
+    await CsGoRound.create_schema(conn)
+    await CsGoTeamNames.create_schema(conn)
+    await CsGoSteamId.create_schema(conn)
+    await CsGoDeathEvent.create_schema(conn)
     await CsGoEventMapRelation.create_schema(conn)
+    await CsGoMatchMapRelation.create_schema(conn)
+    await CsGoMapRoundRelation.create_schema(conn)
 
 
 async def create_initial_records(conn):
