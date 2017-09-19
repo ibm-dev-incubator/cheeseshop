@@ -47,6 +47,12 @@ Create and edit config file
     vim config.yaml
 
 
+Create a swift container for replay files
+
+.. code:: shell
+    os container create replays
+
+
 Create the schema
 
 .. code:: shell
