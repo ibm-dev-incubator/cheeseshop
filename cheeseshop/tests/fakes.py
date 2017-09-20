@@ -1,4 +1,6 @@
 import collections
+from hashlib import sha1
+from cheeseshop.swift import SwiftClient
 
 
 swift_storage = None
@@ -24,13 +26,18 @@ class FakeKeystoneSession(object):
     async def __aexit__(self, *args, **kwargs):
         pass
 
+class FakeEndpoint(object):
+    def __init__(self, url):
+        self.url = url
 
-class FakeSwiftClient(object):
+class FakeSwiftClient(SwiftClient):
     def __init__(self, keystone_session, region_id, interface='public',
                  temp_url_key=None):
         global swift_storage
         if swift_storage is None:
             swift_storage = collections.defaultdict(dict)
+        self.endpoint = FakeEndpoint("https://swift.herpderp.com/v1/AUTH_herpthederp3000")
+        self.temp_url_key = temp_url_key
 
     async def __aenter__(self):
         return self
@@ -44,5 +51,15 @@ class FakeSwiftClient(object):
     async def get_object(self, name, container):
         return get_swift_object(name, container)
 
-    async def create_tempurl(self, name, container):
-        return 'http://some-swift.com/tempurl-unique'
+
+class FakeHmac(object):
+    def __init__(self, key, hmac_body, digest=sha1):
+        self.key = key
+        self.hmac_body = hmac_body
+        self.digest = digest
+        print ("IT ME {0}-{1}".format(self.key, self.hmac_body))
+
+    def hexdigest(self):
+        print ("IN YOUR DIGEST HEXING UR DUDES")
+        return "DAEDBEFFCAFE"
+
