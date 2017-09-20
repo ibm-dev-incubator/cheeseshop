@@ -26,9 +26,11 @@ class FakeKeystoneSession(object):
     async def __aexit__(self, *args, **kwargs):
         pass
 
+
 class FakeEndpoint(object):
     def __init__(self, url):
         self.url = url
+
 
 class FakeSwiftClient(SwiftClient):
     def __init__(self, keystone_session, region_id, interface='public',
@@ -36,7 +38,8 @@ class FakeSwiftClient(SwiftClient):
         global swift_storage
         if swift_storage is None:
             swift_storage = collections.defaultdict(dict)
-        self.endpoint = FakeEndpoint("https://swift.herpderp.com/v1/AUTH_herpthederp3000")
+        self.endpoint = FakeEndpoint("https://swift.herpderp.com/"
+                                     "v1/AUTH_herpthederp3000")
         self.temp_url_key = temp_url_key
 
     async def __aenter__(self):
@@ -57,9 +60,6 @@ class FakeHmac(object):
         self.key = key
         self.hmac_body = hmac_body
         self.digest = digest
-        print ("IT ME {0}-{1}".format(self.key, self.hmac_body))
 
     def hexdigest(self):
-        print ("IN YOUR DIGEST HEXING UR DUDES")
         return "DAEDBEFFCAFE"
-

@@ -48,7 +48,7 @@ class TestUploads(base.FunctionalTestCase):
     async def test_upload_conflicts(self):
         data = FormData()
         data.add_field('game', 'cs:go')
-        data.add_field('replay_sha1sum', 'replay_sha1sum')
+        data.add_field('replay_sha1sum', '0012conflicting_sha1sum01baba19')
 
         # First time should succeed
         with fixtures.MonkeyPatch('cheeseshop.swift.KeystoneSession',
@@ -67,6 +67,7 @@ class TestUploads(base.FunctionalTestCase):
                 resp = await self.client.post("/upload", data=data)
                 resp_text = await resp.text()
                 self.assertEqual(resp.status, 409)
+                self.assertTrue("already exists" in resp_text)
 
     async def test_swift_tempurl_gen(self):
         data = FormData()
@@ -87,11 +88,11 @@ class TestUploads(base.FunctionalTestCase):
                     ).group(1)
 
                     parsed = urlparse(tempurl)
-                    queries = parse_qs(parsed)
-
                     self.assertEqual(parsed.netloc,
                                      'swift.herpderp.com')
-                    self.assertEqual(queries['temp_url_sig'],
+
+                    queries = parse_qs(parsed.query)
+                    self.assertEqual(queries['temp_url_sig'][0],
                                      'DAEDBEFFCAFE')
 
 

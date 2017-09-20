@@ -80,6 +80,7 @@ class App(object):
                     else:
                         return web.Response(text='Replay sha1 already exists',
                                             status=409)
+                    sha = req_data['replay_sha1sum']
                 # If we werent supplied a sha1sum then the file must be sent
                 elif ('replay_sha1sum' not in req_data and
                         'replay_file' not in req_data):
@@ -87,6 +88,8 @@ class App(object):
                         text='Must specify sha1sum or send file',
                         status=400
                     )
+                else:
+                    sha = None
 
                 game = await dbapi.Game.get_by_name(conn, req_data['game'])
                 replay_uuid = str(uuid.uuid4())
@@ -95,7 +98,7 @@ class App(object):
                     replay_uuid,
                     game.id,
                     dbapi.ReplayUploadState.UPLOADING_TO_SWIFT,
-                    None
+                    sha
                 )
 
         # Swift uploads can take a while so release our db connection
