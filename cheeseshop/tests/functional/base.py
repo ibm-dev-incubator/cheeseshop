@@ -6,7 +6,7 @@ from aiohttp.test_utils import TestClient
 import aiohttp_jinja2
 import jinja2
 
-from cheeseshop import db, dbapi
+from cheeseshop import db, dbmigrations
 from cheeseshop import main as cs_main
 # from cheeseshop.tests import asyncfixtures, base
 from cheeseshop.tests import base
@@ -46,9 +46,7 @@ class FunctionalTestCase(base.TestCase):
         self.addCleanup(self._cleanup)
 
         async with self.pool.acquire() as conn:
-            async with conn.transaction():
-                await dbapi.create_schema(conn)
-                await dbapi.create_initial_records(conn)
+            await dbmigrations.run_migrations(conn)
 
     async def _cleanup_db(self):
         await self.pool.close()

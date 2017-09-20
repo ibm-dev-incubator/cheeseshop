@@ -1,6 +1,10 @@
 from enum import Enum
 
-# import asyncpg
+import asyncpg
+
+
+class SchemaError(Exception):
+    pass
 
 
 class NotFoundError(Exception):
@@ -433,20 +437,42 @@ class CsGoEventMapRelation(object):
         self.map_id = map_id
 
 
-async def create_schema(conn):
-    await Game.create_schema(conn)
-    await Replay.create_schema(conn)
-    await CsGoHltvEventType.create_schema(conn)
-    await CsGoHltvEvent.create_schema(conn)
-    await CsGoSteamId.create_schema(conn)
-    await CsGoDeathEvent.create_schema(conn)
-    await CsGoStreamer.create_schema(conn)
-    await CsGoGsiEvent.create_schema(conn)
-    await CsGoMap.create_schema(conn)
-    await CsGoEventMapRelation.create_schema(conn)
+class SystemConfig(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE system_config(
+                key text UNIQUE NOT NULL,
+                value json
+            )
+        ''')
 
+    @staticmethod
+    async def set(conn, key, value):
+        try:
+            await conn.execute('''
+                INSERT INTO system_config (key, value)
+                VALUES ($1, $2)
+            ''', key, value)
+        except asyncpg.exceptions.UniqueViolationError:
+            await conn.execute('''
+                UPDATE system_config
+                SET value = $2 WHERE key = $1
+            ''', key, value)
+        return SystemConfig(key, value)
 
-async def create_initial_records(conn):
-    async with conn.transaction():
-        await Game.create(conn, 'sc2', 'StarCraft 2')
-        await Game.create(conn, 'cs:go', 'Counter Strike: Global Offensive')
+    async def get(conn, key):
+        try:
+            row = await conn.fetchrow('''
+                SELECT * FROM system_config
+                WHERE key = $1
+            ''', key)
+        except asyncpg.exceptions.UndefinedTableError:
+            raise SchemaError()
+        if row is None:
+            raise NotFoundError
+        return SystemConfig(row['key'], row['value'])
+
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
