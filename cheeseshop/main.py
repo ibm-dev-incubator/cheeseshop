@@ -11,6 +11,7 @@ import jinja2
 from cheeseshop import config as cs_config
 from cheeseshop import db
 from cheeseshop import dbapi
+from cheeseshop import dbmigrations
 from cheeseshop.games import csgo
 from cheeseshop import objectstoreapi
 from cheeseshop import swift
@@ -21,7 +22,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description='cheeseshop webapp.')
     parser.add_argument('config_file', type=str,
                         help='Path to config file')
-    parser.add_argument('--create-schema', action='store_true')
+    parser.add_argument('--update-schema', action='store_true')
     return parser.parse_args(args)
 
 
@@ -165,11 +166,11 @@ def main():
     loop = asyncio.get_event_loop()
     pool = loop.run_until_complete(db.create_pool(config.sql))
 
-    if args.create_schema:
+    if args.update_schema:
+        print('Updating DB schema')
         conn = loop.run_until_complete(pool.acquire())
-        loop.run_until_complete(dbapi.create_schema(conn))
-        loop.run_until_complete(dbapi.create_initial_records(conn))
-        print('DB Schema created')
+        loop.run_until_complete(dbmigrations.run_migrations(conn))
+        print('DB Schema updated')
     else:
         app = App(config, pool)
         app.run()
