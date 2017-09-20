@@ -3,13 +3,14 @@ import yaml
 
 class SwiftConfig(object):
     def __init__(self, auth_url, project_id, user_id, password, region,
-                 replays_container):
+                 replays_container, temp_url_key):
         self.auth_url = auth_url
         self.project_id = project_id
         self.user_id = user_id
         self.password = password
         self.region = region
         self.replays_container = replays_container
+        self.temp_url_key = temp_url_key.encode()
 
 
 class SqlConfig(object):

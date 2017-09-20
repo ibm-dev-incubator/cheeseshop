@@ -1,4 +1,6 @@
 import re
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 from aiohttp import FormData
 import fixtures
@@ -46,8 +48,9 @@ class TestUploads(base.FunctionalTestCase):
     async def test_upload_conflicts(self):
         data = FormData()
         data.add_field('game', 'cs:go')
-        data.add_field('replay_sha1sum', 'replay_sha1sum')
+        data.add_field('replay_sha1sum', '0012conflicting_sha1sum01baba19')
 
+        # First time should succeed
         with fixtures.MonkeyPatch('cheeseshop.swift.KeystoneSession',
                                   fakes.FakeKeystoneSession):
             with fixtures.MonkeyPatch('cheeseshop.swift.SwiftClient',
@@ -55,11 +58,42 @@ class TestUploads(base.FunctionalTestCase):
                 resp = await self.client.post("/upload", data=data)
                 resp_text = await resp.text()
                 self.assertEqual(resp.status, 200)
-                tempurl = re.search(
-                    'swift tempurl: (.*)</li>', resp_text
-                ).group(1)
-                self.assertEqual(tempurl,
-                                 'http://some-swift.com/tempurl-unique')
+
+        # Second time should fail with 409
+        with fixtures.MonkeyPatch('cheeseshop.swift.KeystoneSession',
+                                  fakes.FakeKeystoneSession):
+            with fixtures.MonkeyPatch('cheeseshop.swift.SwiftClient',
+                                      fakes.FakeSwiftClient):
+                resp = await self.client.post("/upload", data=data)
+                resp_text = await resp.text()
+                self.assertEqual(resp.status, 409)
+                self.assertTrue("already exists" in resp_text)
+
+    async def test_swift_tempurl_gen(self):
+        data = FormData()
+        data.add_field('game', 'cs:go')
+        data.add_field('replay_sha1sum', 'replay_sha1sum')
+
+        with fixtures.MonkeyPatch('cheeseshop.swift.KeystoneSession',
+                                  fakes.FakeKeystoneSession):
+            with fixtures.MonkeyPatch('cheeseshop.swift.SwiftClient',
+                                      fakes.FakeSwiftClient):
+                with fixtures.MonkeyPatch('hmac.new',
+                                          fakes.FakeHmac):
+                    resp = await self.client.post("/upload", data=data)
+                    resp_text = await resp.text()
+                    self.assertEqual(resp.status, 200)
+                    tempurl = re.search(
+                        'swift tempurl: (.*)</li>', resp_text
+                    ).group(1)
+
+                    parsed = urlparse(tempurl)
+                    self.assertEqual(parsed.netloc,
+                                     'swift.herpderp.com')
+
+                    queries = parse_qs(parsed.query)
+                    self.assertEqual(queries['temp_url_sig'][0],
+                                     'DAEDBEFFCAFE')
 
 
 class TestCsGoGsi(base.FunctionalTestCase):

@@ -47,6 +47,20 @@ Create and edit config file
     vim config.yaml
 
 
+Create a swift container for replay files
+
+.. code:: shell
+
+    openstack container create replays
+
+
+Set a swift temp-url key
+
+.. code:: shell
+
+    swift post -m "Temp-URL-Key:abcabcd"
+
+
 Create the schema
 
 .. code:: shell

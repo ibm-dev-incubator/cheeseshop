@@ -1,4 +1,7 @@
 import aiohttp
+import hmac
+from hashlib import sha1
+from time import time
 
 
 class KeystoneCatalogEndpoint(object):
@@ -120,12 +123,13 @@ class KeystoneSession(object):
 
 class SwiftClient(object):
     def __init__(self, keystone_session, region_id, interface='public',
-                 container=None):
+                 container=None, temp_url_key=None):
         self._keystone_session = keystone_session
         self.region_id = region_id
         self.interface = interface
         self.container = container
         self.service = None
+        self.temp_url_key = temp_url_key
 
     async def __aenter__(self):
         catalog = self._keystone_session.catalog
@@ -155,5 +159,16 @@ class SwiftClient(object):
     async def create_tempurl(self, name, container=None):
         assert container is not None or self.container is not None
         container = container or self.container
+        method = 'PUT'
+        proto, barf, host, version, auth_account = self.endpoint.url.split('/')
+        location = "/" + "/".join([version, auth_account, container, name])
+        duration_in_seconds = 60 * 60 * 2
+        expires = str(int(time() + duration_in_seconds))
+        hmac_body = b"\n".join(map(lambda x: x.encode(),
+                                   [method, expires, location]))
+        sig = hmac.new(self.temp_url_key, hmac_body, sha1).hexdigest()
+        path = 'https://{host}{location}'.format(host=host, location=location)
+        url = '{path}?temp_url_sig={sig}&temp_url_expires={expires}'.format(
+            path=path, sig=sig, expires=expires)
 
-        # TODO:greghaynes Implement this
+        return url
