@@ -150,6 +150,10 @@ class CsGoApi(gameapi.GameApi):
                        self._handle_gsi_deathlog)
         router.add_get('/games/csgo/gsi/sources/{streamer_uuid}/moneylog',
                        self._handle_gsi_moneylog)
+        router.add_get('/games/csgo/events/entry_kills_heatmaps',
+                       self._handle_events_entry_kills_heatmap)
+        router.add_get('/api/games/csgo/location_events',
+                       self._handle_api_location_events)
 
     @aiohttp_jinja2.template('csgo_deathlog.html')
     async def _handle_gsi_deathlog(self, request):
@@ -259,6 +263,41 @@ class CsGoApi(gameapi.GameApi):
         return {
             'maps': maps
         }
+
+    @aiohttp_jinja2.template('csgo_events_entry_kills_heatmap.html')
+    @db.with_transaction
+    async def _handle_events_entry_kills_heatmap(self, conn, request):
+        """
+        game_maps = await dbapi.???.get_all_maps(conn)
+        weapons = await dbapi.???.get_all_weapons(conn)
+        events = await dbapi.???.get_all_tournaments(conn)
+        """
+        game_maps = ['inferno',
+                     'cobble',
+                     'train',
+                     'cache',
+                     'mirage',
+                     'overpass',
+                     'nuke']
+        weapons = ['ak47', 'awp']
+        events = ["dreamhack_masters_malmo_2017",
+                  "dreamhack_astro_montreal_2017"]
+        teams = await dbapi.CsGoTeam.get_all(conn)
+        players = await dbapi.CsGoPlayers.get_all(conn)
+
+        return {
+            'game_maps': game_maps,
+            'teams': teams,
+            'players': players,
+            'weapons': weapons,
+            'events': events,
+            'api_endpoint': "/api/games/csgo/location_events"
+        }
+
+    @db.with_transaction
+    async def _handle_api_location_events(self, conn, request):
+        positional_data = await dbapi.CsGoHist.get_stuff(request.data)
+        return web.json_response(positional_data)
 
     def _url_for_streamer(self, streamer):
         return (self.config.base_uri +

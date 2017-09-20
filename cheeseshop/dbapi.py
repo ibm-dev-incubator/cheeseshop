@@ -311,9 +311,78 @@ class CsGoSteamId(object):
         await conn.execute('''
             CREATE TABLE cs_go_steam_ids(
                 id serial PRIMARY KEY,
-                steam_id text UNIQUE NOT NULL
+                steam_id text UNIQUE NOT NULL,
+                print_name text,
+                team integer REFERENCES cs_go_team_ids (id)
             )
         ''')
+
+    @staticmethod
+    async def get_all(conn):
+        players = []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_steam_ids
+        '''):
+            players.append({
+                'id': record['steam_id'],
+                'name': record['print_name'],
+                'team': record['team_name}']})
+        return players
+
+
+class CsGoTeamNames(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_team_names(
+                id serial PRIMARY KEY,
+                team integer REFERENCES cs_go_team_ids (id),
+                team_name text
+            )
+        ''')
+
+    @staticmethod
+    async def get_names_by_id(conn, team_id):
+        names = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_team_names
+            WHERE id = $1
+        ''', team_id):
+            names.append(record['team_name'])
+        return names
+
+    @staticmethod
+    async def get_ids_by_name(conn, team_name):
+        ids = []
+        async for record in conn.cursor('''
+            SELECT * FROM cs_go_team_names
+            WHERE team_name LIKE %$1$%
+        ''', team_name):
+            ids.append(record['team'])
+        return ids
+
+    def __init__(self, id_, name):
+        self.id = id
+        self.name = name
+
+
+class CsGoTeam(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_team_ids(
+                id serial PRIMARY KEY
+            )
+        ''')
+
+    @staticmethod
+    async def get_all(conn):
+        teams = []
+        async for record in conn.cursor('''
+            SELECT * from cs_go_team_ids
+        '''):
+            teams.append(record['team_id'])
+        return teams
 
 
 class CsGoDeathEvent(object):
@@ -323,8 +392,103 @@ class CsGoDeathEvent(object):
             CREATE TABLE cs_go_death_events(
                 id serial PRIMARY KEY,
                 attacker integer REFERENCES cs_go_steam_ids (id),
+                attacker_pos_x real,
+                attacker_pos_y real,
+                attacker_pos_z real,
                 victim integer REFERENCES cs_go_steam_ids (id),
-                weapon text
+                victim_pos_x real,
+                victim_pos_y real,
+                victim_pos_z real,
+                assister integer REFERENCES cs_go_steam_ids (id),
+                weapon_original_owner integer REFERENCES cs_go_steam_ids (id),
+                penetrated smallint,
+                weapon text,
+                map_name text,
+                attacker_team text,
+                victim_team text,
+                match integer REFERENCES cs_go_match (id),
+                map integer REFERENCES cs_go_map (id),
+                round integer REFERENCES cs_go_round (id),
+                team_t integer REFERENCES cs_go_team_ids (id),
+                team_ct integer REFERENCES cs_go_team_ids (id)
+            )
+        ''')
+
+
+class CsGoMatch(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_match(
+                id serial PRIMARY KEY,
+                uuid text UNIQUE,
+                start_time timestamp,
+                metadata text,
+                team_1 integer REFERENCES cs_go_team_ids (id),
+                team_2 integer REFERENCES cs_go_team_ids (id)
+            )
+        ''')
+        await conn.execute('''
+            CREATE UNIQUE INDEX ON cs_go_match (uuid)
+        ''')
+
+
+class CsGoMatchMapRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_match_to_map(
+                id serial PRIMARY KEY,
+                match integer REFERENCES cs_go_match (id),
+                map integer REFERENCES cs_go_map (id)
+            )
+        ''')
+
+
+class CsGoRound(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TYPE round_winner AS ENUM (
+                'T',
+                'CT'
+            )
+        ''')
+        await conn.execute('''
+            CREATE TYPE round_win_condition AS ENUM (
+                'defuse',
+                'explode',
+                'elimination',
+                'time'
+            )
+        ''')
+        await conn.execute('''
+            CREATE TABLE cs_go_round(
+                id serial PRIMARY KEY,
+                uuid text UNIQUE,
+                start_time timestamp,
+                length_seconds smallint,
+                bomb_planted boolean,
+                winner round_winner,
+                win_condition round_win_condition,
+                tick_start integer,
+                tick_end integer,
+                team_t integer REFERENCES cs_go_team_ids (id),
+                team_ct integer REFERENCES cs_go_team_ids (id),
+                map integer REFERENCES cs_go_map (id),
+                match integer REFERENCES cs_go_match (id)
+            )
+        ''')
+
+
+class CsGoMapRoundRelation(object):
+    @staticmethod
+    async def create_schema(conn):
+        await conn.execute('''
+            CREATE TABLE cs_go_map_to_round(
+                id serial PRIMARY KEY,
+                map integer REFERENCES cs_go_map (id),
+                match integer REFERENCES cs_go_round (id)
             )
         ''')
 
@@ -438,12 +602,18 @@ async def create_schema(conn):
     await Replay.create_schema(conn)
     await CsGoHltvEventType.create_schema(conn)
     await CsGoHltvEvent.create_schema(conn)
-    await CsGoSteamId.create_schema(conn)
-    await CsGoDeathEvent.create_schema(conn)
+    await CsGoTeam.create_schema(conn)
     await CsGoStreamer.create_schema(conn)
     await CsGoGsiEvent.create_schema(conn)
+    await CsGoMatch.create_schema(conn)
     await CsGoMap.create_schema(conn)
+    await CsGoRound.create_schema(conn)
+    await CsGoTeamNames.create_schema(conn)
+    await CsGoSteamId.create_schema(conn)
+    await CsGoDeathEvent.create_schema(conn)
     await CsGoEventMapRelation.create_schema(conn)
+    await CsGoMatchMapRelation.create_schema(conn)
+    await CsGoMapRoundRelation.create_schema(conn)
 
 
 async def create_initial_records(conn):
