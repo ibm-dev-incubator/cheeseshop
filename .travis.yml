@@ -19,6 +19,10 @@ install:
   - pip install -r test-requirements.txt
   - pip install .
 
+stages:
+  - lint
+  - test
+
 jobs:
   include:
     - stage: lint
